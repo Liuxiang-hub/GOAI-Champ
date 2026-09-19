@@ -1,21 +1,22 @@
 # 2223 source hashes
 
-These SHA256 values identify the files copied from the active 2223 working
-tree on 2026-09-20. The repository-safe `motion_gate.json` intentionally
-differs from the active gate; the active value is preserved by
+These SHA256 values identify the files deployed to the active 2223 working
+trees on 2026-09-20. The repository-safe `motion_gate.json` intentionally
+differs from the active gate; the deployed value is preserved by
 `motion_gate.2223-runtime-snapshot.json`.
 
 ```text
 e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  __init__.py
-a092ad20d23cadfe90f4b56b809f901e3e04d4bc009ec0894d675aa8a356c131  deploy.py
-dbc0d6b5dcd5e4f7a07502f9700a2b27b67fa8c5f10f9b9842e9641e3c72a901  deploy.yml
+643882aa4fe59a05faecb0983ced2ca5e971af81a02f3abe61fccdd8d3ce7d41  deploy.py
+36c907767be9dc7d6625e1ad1850d52909bf21b3ed1d9aab8b11e892076cdc16  deploy.yml
 d61030b1251f1c96e03912b1b7406cb8eb2a231ee6ec1bb39bca6290ba611c5c  model.py
-f061cffb739e84f30a4a1feb73a1bdebf2823dc46d558309244626d7d9ece5af  motion_gate.2223-runtime-snapshot.json
+dd699ad9041a79e0081d9c28f236f6e65f9e737591244a0be124a09870953da8  motion_gate.2223-runtime-snapshot.json
 09d38f403bbc257934f22e45b84f2f157740879f0e0705c5e60955b92b079835  piper6_norm_stats.json
 351093c38cc18e464a513ee74f5379f6c50f13bf0ae29b151ea44f2837ee3ac4  preflight.py
 766d5fc0781f6381352b6011bd72a4702fdf3d7b4ca63f022b4685c4ff7d60b9  prepare_real.py
 26b345939a0a2f7a5a2322d6dc4f50bdd7a34ddb447ad76fb5eb5f402e0c06d6  rtc_core.py
-9427a66638f03311fb91e2878ee516d7f75efb71bf2142f21f25c8ccc4025fe1  rtc_preflight.py
+4af21659b04e395cfdd0ff84d40d2ef0adfc41b6613d8515a01774982143fbbc  rtc_preflight.py
 6146bad5c8dc2c87e0d6a8aab760b606ed87a00068f80e50e90fc224b4d17834  safety.py
 7e56c8185d84cb85db27e6b50961cc90d4f4a6bd371aacfb1a12a52d2e3e1cda  tools/local_pi05_eval.py
+adbc46b4548ecbe687067dac981535316ec5bee9b5dd61ff06e6b689fe5e2e60  tests/test_deploy_modes.py
 ```

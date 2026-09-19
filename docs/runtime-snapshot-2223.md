@@ -18,8 +18,8 @@ The running command was:
   --config_path policy/Pi05_PiperX/deploy.yml
 ```
 
-The process was started manually. At snapshot time,
-`pi05-piperx-adapter.service` was inactive while port 6007 was listening.
+Port 6007 is managed by the enabled and active
+`pi05-piperx-adapter.service`. The eval-runner listens on port 19200.
 
 ## Robot-side mapping
 
@@ -42,12 +42,18 @@ independently to `[0, 1]`.
 ## Active execution parameters
 
 ```yaml
-execution_mode: synchronous_prefix
-execute_steps: 15
+execution_mode: rtc
+rtc_start_steps: 5
+rtc_initial_delay_steps: 22
 control_hz: 25
 upstream: ws://127.0.0.1:6198
 checkpoint: real-piper6-lora/7594
 ```
+
+The RTC controller uses an asynchronous double buffer, commits the latest
+observation after every executed action, and rebases each returned absolute
+action chunk. The upstream OpenPI build does not implement guidance/inpainting,
+so this is not the full paper RTC algorithm.
 
 The released Pi05 checkpoint documentation describes 30 Hz training data, so
 25 Hz execution makes a 15-step prefix last 0.6 s instead of 0.5 s.
@@ -71,13 +77,26 @@ show that `654` has not been justified by this test.
 
 ## Duplicate deployment tree
 
-2223 also contains:
+2223 contains two policy trees:
 
 ```text
 /home/user/.xrobot/XPolicyLab/policy/Pi05_PiperX/
 ```
 
-The Python files matched the working tree at snapshot time, but its
-`deploy.yml` specified 10 Hz and loopback-only binding. The process listening
-on 6007 loaded the `goai_pi05` tree included in this repository, not that
-second configuration.
+The RTC deployment synchronized `deploy.py`, `deploy.yml`, `motion_gate.json`,
+and `rtc_preflight.py` between both trees. Their deployed hashes matched after
+installation. Port 6007 loads the `goai_pi05` tree; eval-runner imports the
+`.xrobot` tree.
+
+## Read-only RTC verification
+
+Recorded three-camera observations were replayed through both the local 6007
+adapter and the official `47.97.37.69:6007` endpoint. Actions were discarded by
+a fake environment; no hardware backend was instantiated.
+
+- Local endpoint: two 120-step runs, 22 generation switches each.
+- Official endpoint: two 60-step runs, 11 generation switches each.
+- Both paths observed concurrent inference and completed without queue
+  exhaustion.
+- Official metadata reported `real-piper6-lora/7594` via upstream
+  `ws://127.0.0.1:6198`.

@@ -13,8 +13,10 @@ eval_batch: false
 pi05_url: ws://127.0.0.1:6198
 request_timeout_s: 60
 execute_steps: 15
+rtc_start_steps: 5
+rtc_initial_delay_steps: 22
 control_hz: 25
-execution_mode: synchronous_prefix
+execution_mode: rtc
 camera_mapping:
   cam_high: [cam_head, cam_high]
   cam_left_wrist: [cam_left_wrist]

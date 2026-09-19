@@ -10,10 +10,10 @@ XPolicyLab WebSocket adapter for a remote Pi0.5 dual-PIPER-X inference server.
 - Action shape: `(50, 14)`
 - Action order: `[left arm 6, left gripper, right arm 6, right gripper]`
 - Action semantics: absolute joint targets
-- Current loop: execute 15 actions at 25 Hz, then request a new chunk
+- Current loop: RTC asynchronous double buffer at 25 Hz
 
-`rtc_core.py` and `rtc_preflight.py` are retained for experiments, but
-`deploy.py` currently runs `synchronous_prefix` mode.
+`deploy.py` defaults to `rtc` mode. `synchronous_prefix` remains available as
+a fallback by changing `execution_mode` in `motion_gate.json`.
 
 ## Configuration
 

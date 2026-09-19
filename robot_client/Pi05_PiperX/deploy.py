@@ -1,9 +1,10 @@
-"""Synchronous real-robot episode loop for the Pi0.5 Piper X adapter.
+"""Real-robot episode loops for the Pi0.5 Piper X adapter.
 
-The upstream Pi0.5 server doesn't implement RTC guidance.  Therefore this
-runner deliberately avoids the adapter-side pseudo-RTC path: every inference
-starts from the latest observation and only the first configured action prefix
-is executed before replanning.
+RTC uses an asynchronous double buffer and rebases each new absolute-action
+chunk to the latest observation. The upstream OpenPI build does not implement
+RTC guidance/inpainting, so the adapter strips guidance fields before remote
+inference. ``execution_mode: synchronous_prefix`` remains available as a
+fallback.
 """
 
 import json
@@ -122,11 +123,7 @@ def validate_action(action, obs, limit):
             raise ValueError(f"{side} gripper target is outside [0,1]")
 
 
-def eval_one_episode(TASK_ENV, model_client):
-    cfg = _gate()
-    if _RIGHT_ARM_PROBE_FLAG.exists():
-        return _run_right_arm_probe(TASK_ENV)
-    debug = os.environ.get("EVAL_ENV_TYPE") == "debug"
+def _eval_synchronous_prefix(task_env, model_client, cfg, debug):
     control_hz = float(cfg["control_hz"])
     prefix_steps = int(cfg.get("execute_steps", 15))
     if control_hz <= 0:
@@ -135,10 +132,10 @@ def eval_one_episode(TASK_ENV, model_client):
         raise ValueError("execute_steps must be between 1 and 50")
 
     model_client.call(func_name="reset")
-    limiter = CommandLimiter(cfg, TASK_ENV.get_obs())
+    limiter = CommandLimiter(cfg, task_env.get_obs())
 
-    while not TASK_ENV.is_episode_end():
-        observation = TASK_ENV.get_obs()
+    while not task_env.is_episode_end():
+        observation = task_env.get_obs()
         model_client.call(func_name="update_obs", obs=observation)
         chunk = model_client.call(func_name="get_action")
         if not isinstance(chunk, (list, tuple)) or not chunk:
@@ -148,14 +145,14 @@ def eval_one_episode(TASK_ENV, model_client):
 
         for chunk_index, raw in enumerate(chunk):
             started = time.monotonic()
-            observation = TASK_ENV.get_obs()
+            observation = task_env.get_obs()
             if not debug:
                 _gate()  # A local disarm takes effect before the next command.
                 action = limiter.command(raw, observation)
             else:
                 action = raw
 
-            TASK_ENV.take_action(action)
+            task_env.take_action(action)
             if not debug:
                 print(
                     "SYNC15_COMMAND",
@@ -170,11 +167,74 @@ def eval_one_episode(TASK_ENV, model_client):
                 )
             limiter.commit(action)
             time.sleep(max(0.0, 1.0 / control_hz - (time.monotonic() - started)))
-            if TASK_ENV.is_episode_end():
+            if task_env.is_episode_end():
                 break
+
+
+def _eval_rtc(task_env, model_client, cfg, debug):
+    control_hz = float(cfg["control_hz"])
+    if control_hz <= 0:
+        raise ValueError("control_hz must be positive")
+
+    model_client.call(func_name="reset")
+    observation = task_env.get_obs()
+    limiter = CommandLimiter(cfg, observation)
+    started_rtc = False
+    try:
+        status = model_client.call(func_name="rtc_start", obs=observation)
+        started_rtc = True
+        print("RTC_START " + json.dumps(status), flush=True)
+
+        while not task_env.is_episode_end():
+            started = time.monotonic()
+            observation = task_env.get_obs()
+            raw = model_client.call(func_name="rtc_next_action")
+            if not debug:
+                _gate()  # A local disarm takes effect before the next command.
+                action = limiter.command(raw, observation)
+            else:
+                action = raw
+
+            task_env.take_action(action)
+            if not debug:
+                print(
+                    "RTC_COMMAND "
+                    + json.dumps(
+                        {
+                            "raw": {k: np.asarray(v).tolist() for k, v in raw.items()},
+                            "command": {
+                                k: np.asarray(v).tolist() for k, v in action.items()
+                            },
+                        }
+                    ),
+                    flush=True,
+                )
+            limiter.commit(action)
+            time.sleep(max(0.0, 1.0 / control_hz - (time.monotonic() - started)))
+            if task_env.is_episode_end():
+                break
+
+            status = model_client.call(func_name="rtc_commit", obs=task_env.get_obs())
+            print("RTC_STATUS " + json.dumps(status), flush=True)
+    finally:
+        if started_rtc:
+            model_client.call(func_name="rtc_stop")
+
+
+def eval_one_episode(TASK_ENV, model_client):
+    cfg = _gate()
+    if _RIGHT_ARM_PROBE_FLAG.exists():
+        return _run_right_arm_probe(TASK_ENV)
+    debug = os.environ.get("EVAL_ENV_TYPE") == "debug"
+    mode = cfg.get("execution_mode", "synchronous_prefix")
+    if mode == "rtc":
+        return _eval_rtc(TASK_ENV, model_client, cfg, debug)
+    if mode == "synchronous_prefix":
+        return _eval_synchronous_prefix(TASK_ENV, model_client, cfg, debug)
+    raise ValueError(f"unsupported execution_mode: {mode}")
 
 
 def eval_one_episode_batch(TASK_ENV, model_client):
     raise NotImplementedError(
-        "Pi05_PiperX synchronous-prefix mode supports one real or debug environment per session"
+        "Pi05_PiperX supports one real or debug environment per session"
     )

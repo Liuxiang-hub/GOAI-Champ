@@ -8,7 +8,7 @@ import h5py
 import numpy as np
 from client_server.ws import WsModelClient
 from XPolicyLab.utils.process_data import decode_image_bit, unpack_robot_state, get_robot_action_dim_info
-from XPolicyLab.policy.Pi05_PiperX.deploy import eval_one_episode
+from .deploy import eval_one_episode
 
 
 def main():
@@ -16,6 +16,7 @@ def main():
     p.add_argument('--trajectory', required=True)
     p.add_argument('--output', required=True)
     p.add_argument('--steps', type=int, default=120)
+    p.add_argument('--url', default='ws://127.0.0.1:6007')
     args = p.parse_args()
     os.environ['EVAL_ENV_TYPE'] = 'debug'
     rows = []
@@ -26,7 +27,7 @@ def main():
             for cam in ('cam_head','cam_left_wrist','cam_right_wrist'):
                 value = f[cam+'/color'][0]
                 observation['vision'][cam] = {'color': value if encoded else decode_image_bit(value)}
-        client = WsModelClient(url='ws://127.0.0.1:6007', evaluation_id='pi05-rtc-readonly-audit', trial_id='discard', request_timeout_s=60, max_connect_attempts=2)
+        client = WsModelClient(url=args.url, evaluation_id='pi05-rtc-readonly-audit', trial_id='discard', request_timeout_s=60, max_connect_attempts=2)
         trace=[]
         class RecordingClient:
             def call(self, **kwargs):
