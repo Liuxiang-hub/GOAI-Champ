@@ -15,6 +15,7 @@ request_timeout_s: 60
 execute_steps: 15
 rtc_start_steps: 5
 rtc_initial_delay_steps: 22
+rtc_prewarm_guided: true
 control_hz: 25
 execution_mode: rtc
 camera_mapping:

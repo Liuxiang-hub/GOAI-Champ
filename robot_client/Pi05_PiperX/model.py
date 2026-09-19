@@ -5,18 +5,10 @@ Modelled on policy/FinalGOAI: this adapter is itself an XPolicyLab ws server
 inference to the Pi05 policy server on L20 via the XPolicyLab ws protocol
 (default ws://127.0.0.1:6198, SSH-forwarded from the field machine).
 
-Differences from FinalGOAI:
-- Upstream is XPolicyLab ws (WsModelClient), not the LingBot msgpack wire.
-- The vendored openpi build has no RTC guidance/inpainting support, so `_rtc`
-  payloads are constructed by rtc_core but stripped before going upstream;
-  chunk replacement relies on the rebase hook only.
-- `_normalized_actions` are synthesized adapter-side from the physical chunk
-  using the piper6 norm stats (openpi q01/q99 normalization), because the
-  server does not return normalized actions.
+The adapter keeps RTC targets in physical absolute-action space.  The Pi0.5
+server maps them through the checkpoint's real DeltaActions, Normalize and
+PadStatesAndActions transforms before applying per-denoising-step guidance.
 """
-import json
-import os
-from pathlib import Path
 import threading
 
 import numpy as np
@@ -47,14 +39,6 @@ class Model(ModelTemplate):
         if not 1 <= self.execute_steps <= 50:
             raise ValueError('execute_steps must be between 1 and 50')
         self.timeout = float(self.cfg.get('request_timeout_s', 60))
-
-        stats = json.loads(
-            Path(__file__).with_name('piper6_norm_stats.json').read_text()
-        )['norm_stats']['actions']
-        self.q01 = np.asarray(stats['q01'], dtype=np.float64)
-        self.q99 = np.asarray(stats['q99'], dtype=np.float64)
-        if self.q01.shape != (self.action_dim,) or self.q99.shape != (self.action_dim,):
-            raise ValueError('piper6_norm_stats.json action stats must be 14-dim')
 
         self.url = self.cfg.get('pi05_url', 'ws://127.0.0.1:6198')
         self.lock = threading.RLock()
@@ -97,7 +81,11 @@ class Model(ModelTemplate):
             if img.ndim != 3 or img.shape[-1] != 3 or img.dtype != np.uint8:
                 raise ValueError(f'{name}: expected decoded RGB uint8 HWC, got {img.shape}/{img.dtype}')
             images[target] = np.ascontiguousarray(img).copy()
-        return {'images': images, 'state': state, 'instruction': prompt}
+        translated = {'images': images, 'state': state, 'instruction': prompt}
+        for key in ('_rtc', '_rtc_context'):
+            if key in obs:
+                translated[key] = obs[key]
+        return translated
 
     @staticmethod
     def _pack_steps(steps):
@@ -119,17 +107,23 @@ class Model(ModelTemplate):
         arr[:, 13] = np.clip(arr[:, 13], 0.0, 1.0)
         return arr
 
-    def _normalize(self, chunk):
-        return np.clip(
-            (np.asarray(chunk, dtype=np.float64) - self.q01) / (self.q99 - self.q01 + 1e-6) * 2.0 - 1.0,
-            -1.0, 1.0,
-        ).astype(np.float32)
-
     def _call(self, translated):
         with self.lock:
             self.client.call(func_name='update_obs', obs=translated)
-            steps = self.client.call(func_name='get_action')
-        return self._pack_steps(steps)
+            response = self.client.call(func_name='get_action_with_metadata')
+        if not isinstance(response, dict):
+            raise ValueError('Pi0.5 server did not return inference metadata')
+        model_actions = np.asarray(response.get('_rtc_model_actions'), dtype=np.float32)
+        if model_actions.shape != (50, 32) or not np.isfinite(model_actions).all():
+            raise ValueError(f'Invalid Pi0.5 model-space action chunk: {model_actions.shape}')
+        context = response.get('_rtc_context')
+        if not isinstance(context, dict):
+            raise ValueError('Pi0.5 server response is missing _rtc_context')
+        return {
+            'action': self._pack_steps(response.get('actions')),
+            '_rtc_model_actions': model_actions,
+            '_rtc_context': context,
+        }
 
     # ---------- ModelTemplate interface ----------
 
@@ -144,7 +138,8 @@ class Model(ModelTemplate):
     def get_action(self):
         if self.observation is None:
             raise RuntimeError('update_obs must precede get_action')
-        actions = self._call(self.observation)
+        response = self._call(self.observation)
+        actions = response['action']
         self.last_diagnostics = {'upstream': self.url, 'execute_steps': self.execute_steps}
         # Server returns absolute joint targets in [left arm, left gripper,
         # right arm, right gripper] order. No second state addition or scaling.
@@ -161,22 +156,18 @@ class Model(ModelTemplate):
         with self.lock:
             self.client.call(func_name='reset')
 
-    # ---------- RTC (no server-side guidance; rebase only) ----------
+    # ---------- RTC ----------
 
     def _rebase(self, chunk, old, new):
+        """Express the old joint trajectory relative to the latest state."""
         result = np.array(chunk, copy=True)
         cols = [0, 1, 2, 3, 4, 5, 7, 8, 9, 10, 11, 12]
-        scale = 2.0 / (self.q99[cols] - self.q01[cols] + 1e-6)
-        delta = (np.asarray(old['state'])[cols] - np.asarray(new['state'])[cols]) * scale
+        delta = np.asarray(new['state'])[cols] - np.asarray(old['state'])[cols]
         result[:, cols] += delta
         return result
 
     def _rtc_infer(self, request):
-        # The vendored openpi build has no RTC guidance support; strip the
-        # adapter-internal keys so the server never sees them.
-        clean = {k: v for k, v in request.items() if not k.startswith('_rtc')}
-        actions = self._call(clean)
-        return {'action': actions, '_normalized_actions': self._normalize(actions)}
+        return self._call(request)
 
     def rtc_start(self, obs):
         self.rtc_stop()
@@ -185,6 +176,7 @@ class Model(ModelTemplate):
             minimum_execution_steps=int(self.cfg.get('rtc_start_steps', 5)),
             control_hz=float(self.cfg.get('control_hz', 10)),
             initial_delay_steps=int(self.cfg.get('rtc_initial_delay_steps', 22)),
+            prewarm_guided=bool(self.cfg.get('rtc_prewarm_guided', True)),
         ), rebase_guidance=self._rebase)
         self.rtc.start(self.observation)
         return self.rtc.status()

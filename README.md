@@ -16,14 +16,21 @@ HUST HRT GOAI 双 PIPER-X 真机测评部署代码快照。
   -> real-piper6-lora/7594
 ```
 
-当前执行方式是 RTC 异步双缓冲模式，执行频率为 25 Hz。每执行一步后上传最新
-观测，达到触发阈值后后台请求新的 `(50, 14)` 动作块，并在返回时基于最新状态
-重对齐。同步前缀模式仍作为配置回退保留。
+当前执行方式是模型内 RTC 异步双缓冲模式，执行频率为 25 Hz。旧动作块先按
+最新真机状态重对齐，再经 checkpoint 的 DeltaActions、quantile Normalize 和
+PadStatesAndActions 变换为 `(50, 32)` 模型空间约束。Pi0.5 在每个 JAX 去噪步
+应用 VJP/PiGDM 引导，前段强约束、后段逐渐衰减。同步前缀模式仍作为配置回退保留。
+
+每次 RTC 请求绑定 `generation/request_id`，迟到结果不得替换当前计划。首次
+`rtc_start` 会在允许取动作前执行一次零权重 guided 预热，避免首次 JAX 编译使
+50 步队列在 25 Hz 下耗尽。
 
 ## 目录
 
 - `robot_client/Pi05_PiperX/`: 2223 当前策略适配和执行代码。
+- `l20_server/Pi_05/`: L20 Pi0.5 模型适配、策略变换与 JAX sampler 覆盖文件。
 - `tools/local_pi05_eval.py`: 本地模拟官方任务派发工具。
+- `tools/recorded_pi05_rtc_*.py`: 只读记录回放、A/B 和延迟测试。
 - `docs/runtime-snapshot-2223.md`: 运行环境、文件来源和已知差异。
 
 ## 安全说明
@@ -39,15 +46,14 @@ HUST HRT GOAI 双 PIPER-X 真机测评部署代码快照。
 本仓库不包含 checkpoint、相机数据、日志、令牌、密码、私钥或 `.env`。
 相关 XPolicyLab 代码按仓库中的 Apache-2.0 `LICENSE` 分发。
 
-## 已知缺口
+## 当前 L20 映射
 
-L20 当前运行的 `Pi_05/model.py` 启用了实验性关节重排，但新的 SSH 登录目前不可用，
-因此本次提交没有把无法逐文件校验的 L20 源码冒充为最新快照。已观测到的运行参数是：
+L20 运行文件已逐文件读取、备份、部署并记录哈希。启动脚本当前映射是：
 
 - `swap_arms=false`
 - `swap_left_q4_q5=true`
-- `swap_right_q4_q5=false`
-- `right_wrist_perm=654`
+- `swap_right_q4_q5=true`
+- `right_wrist_perm=546`
 
-这些重排不是 checkpoint 发布格式要求，详见运行快照文档。恢复 L20 文件访问后，
-应将服务端代码和启动配置单独归档并记录 SHA256。
+这些现场实验性重排不是 checkpoint 发布格式本身的要求，仍是尚未消除的真机风险。
+本次 RTC 改动没有改变这些映射。
