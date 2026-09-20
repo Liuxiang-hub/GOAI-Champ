@@ -17,3 +17,4 @@ control_hz: 25
 execution_mode: synchronous_prefix
 left_j5_sign: -1.0
 right_j5_sign: -1.0
+default_instruction: put the object into the basket

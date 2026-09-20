@@ -56,6 +56,16 @@ class Model(ModelTemplate):
 
     def _adapt_observation(self, obs):
         adapted = dict(obs)
+        prompt = adapted.get("instruction", adapted.get("instructions"))
+        if not prompt:
+            prompt = self.cfg.get("default_instruction", "")
+        if isinstance(prompt, (list, tuple)):
+            prompt = prompt[0] if prompt else ""
+        if isinstance(prompt, bytes):
+            prompt = prompt.decode("utf-8")
+        if not isinstance(prompt, str) or not prompt.strip():
+            raise ValueError("HRT observation and config are missing an instruction")
+        adapted["instruction"] = prompt
         state = dict(obs["state"])
         for side in ("left", "right"):
             key = f"{side}_arm_joint_state"
@@ -98,6 +108,7 @@ class Model(ModelTemplate):
             "upstream": self.url,
             "checkpoint": self.metadata["checkpoint"],
             "execute_steps": self.execute_steps,
+            "default_instruction": self.cfg.get("default_instruction", ""),
         }
         return actions[: self.execute_steps]
 
@@ -130,6 +141,7 @@ class Model(ModelTemplate):
             "upstream": self.url,
             "rtc_enabled": False,
             "execute_steps": self.execute_steps,
+            "default_instruction": self.cfg.get("default_instruction", ""),
             "j5_signs": {
                 "left": float(self.cfg.get("left_j5_sign", 1.0)),
                 "right": float(self.cfg.get("right_j5_sign", 1.0)),
