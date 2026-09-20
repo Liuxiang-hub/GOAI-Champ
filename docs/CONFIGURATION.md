@@ -18,13 +18,14 @@
 |---|---|---|
 | prediction horizon | 50 | 每块动作步数 |
 | control_hz | 25 | 名义执行频率 |
-| rtc_start_steps | 5 | 允许发起后台推理的已执行步数阈值 |
-| rtc_initial_delay_steps | 22 | 初始延迟估计，不是每次实际延迟 |
-| rtc_prewarm_guided | true | 首次发动作前执行零权重引导预热 |
-| execute_steps | 15 | 同步模式消费前缀长度，不是当前RTC触发步数 |
-| execution_mode | rtc | 当前公开默认模式 |
+| execute_steps | 15 | 每次消费预测动作块的前15步，再更新观测 |
+| execution_mode | synchronous_prefix | 当前现场方案及公开默认模式 |
 
-第5步触发时，旧块理论剩余45步，即1.8秒；实际余量取决于请求真正发起时的游标与执行节奏，不能以该理论值代替延迟测量。
+现场核查及配置来源见[现场运行说明](FIELD_STATUS_20260920.md)。25Hz描述动作块内的名义频率，完整循环还包含通信和推理等待。
+
+## 实验功能参数
+
+仓库保留rtc_trigger_step=20、rtc_initial_delay_steps=11、rtc_prewarm_guided=true等实验参数；仅在显式选择对应实验执行模式时使用。历史快照中的第5步触发和22步延迟估计属于旧配置，不代表当前默认值或实测延迟。
 
 ## 动作与观测
 

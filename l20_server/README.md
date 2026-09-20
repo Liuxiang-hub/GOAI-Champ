@@ -1,7 +1,9 @@
 # L20 Pi0.5 model-internal RTC overlay
 
-These files mirror the deployed RTC changes relative to the L20 XPolicyLab
-checkout rooted at `/opt/goai/src/XPolicyLab-pi05`:
+These files retain the experimental RTC changes relative to the L20 XPolicyLab
+checkout rooted at `/opt/goai/src/XPolicyLab-pi05`. The current field approach
+uses synchronous prefix execution; these experimental branches are not evidence
+of verified hardware performance improvements:
 
 ```text
 l20_server/Pi_05/model.py

@@ -4,14 +4,14 @@
 
 下方保留原始现场记录，不代表本次重新连接现场核验。裸文件名位于robot_client/Pi05_PiperX/。
 本文件未记录上游XPolicyLab/OpenPI提交号，需另行补充。
-当前公开源码副本有两份文件与历史记录不匹配，当前SHA256为：
+首次整理时发现以下两份文件与历史记录不匹配，记录的SHA256为：
 
 | 文件 | 当前副本SHA256 |
 |---|---|
 | motion_gate.2223-runtime-snapshot.json | 1312b4956100d8afe14b3b30ed3c8f19fcb95fa9f7e256dae6446cacc620987f |
 | piper6_norm_stats.json | b75399db9b01f18e7261c7cf4d8a0c209fab18ecae841b3090c21f7d6efd793f |
 
-原因待核定，不能直接归因于换行或内容修改。其余已列文件在本次副本中匹配。
+上述两份差异的原因待核定。随后现场核查修订将deploy.yml与公开motion_gate.json的execution_mode改为synchronous_prefix，因此deploy.yml也不再匹配下方历史哈希。下方哈希仅供历史对照，当前发布内容以Git提交为准，不构成现场逐文件一致性证明。
 motion_gate.robot1-v1.json尚无下方历史现场哈希记录。
 
 ## 原始记录
