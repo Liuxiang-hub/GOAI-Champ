@@ -46,6 +46,14 @@ class RTCContractTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             soft_mask_weights(horizon=50, start_steps=48, delay_steps=2)
 
+    def test_blend_window_limits_model_guidance_transition(self):
+        weights = soft_mask_weights(
+            horizon=50, start_steps=30, delay_steps=13, blend_steps=5
+        )
+        np.testing.assert_array_equal(weights[:13], 1.0)
+        self.assertTrue(np.all(np.diff(weights[13:18]) < 0.0))
+        np.testing.assert_array_equal(weights[18:], 0.0)
+
     def test_response_identity_is_mandatory(self):
         controller = RealTimeChunkingController(
             lambda request: response_for(request),

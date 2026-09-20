@@ -1,10 +1,8 @@
 """Real-robot episode loops for the Pi0.5 Piper X adapter.
 
-RTC uses an asynchronous double buffer and rebases each new absolute-action
-chunk to the latest observation. The upstream OpenPI build does not implement
-RTC guidance/inpainting, so the adapter strips guidance fields before remote
-inference. ``execution_mode: synchronous_prefix`` remains available as a
-fallback.
+RTC uses an asynchronous double buffer, rebases guidance to the latest
+observation, and delegates per-denoising-step guidance to the Pi0.5 server.
+``execution_mode: synchronous_prefix`` remains available as a fallback.
 """
 
 import json
@@ -18,6 +16,48 @@ from .safety import CommandLimiter
 
 
 _RIGHT_ARM_PROBE_FLAG = Path("/tmp/pi05_right_arm_probe_once.json")
+
+
+def _finite_action(raw):
+    result = {}
+    expected = {
+        "left_arm_joint_state": (6,),
+        "left_ee_joint_state": (1,),
+        "right_arm_joint_state": (6,),
+        "right_ee_joint_state": (1,),
+    }
+    for key, shape in expected.items():
+        value = np.asarray(raw[key], dtype=float)
+        if value.shape != shape or not np.isfinite(value).all():
+            raise ValueError(f"Invalid non-finite or malformed action: {key}")
+        result[key] = value.copy()
+    return result
+
+
+class _ActionEMA:
+    def __init__(self, alpha):
+        self.alpha = float(alpha)
+        if not 0.0 <= self.alpha <= 1.0:
+            raise ValueError("rtc_action_ema_alpha must be in [0, 1]")
+        self.previous = None
+
+    def apply(self, raw):
+        current = _finite_action(raw)
+        if self.previous is None:
+            result = current
+        else:
+            result = {
+                key: self.alpha * value + (1.0 - self.alpha) * self.previous[key]
+                for key, value in current.items()
+            }
+        self.previous = {key: value.copy() for key, value in result.items()}
+        return result
+
+
+def _command(raw, observation, cfg, limiter):
+    if bool(cfg.get("software_safety_enabled", True)):
+        return limiter.command(raw, observation)
+    return _finite_action(raw)
 
 
 def _run_right_arm_probe(task_env):
@@ -148,7 +188,7 @@ def _eval_synchronous_prefix(task_env, model_client, cfg, debug):
             observation = task_env.get_obs()
             if not debug:
                 _gate()  # A local disarm takes effect before the next command.
-                action = limiter.command(raw, observation)
+                action = _command(raw, observation, cfg, limiter)
             else:
                 action = raw
 
@@ -179,6 +219,7 @@ def _eval_rtc(task_env, model_client, cfg, debug):
     model_client.call(func_name="reset")
     observation = task_env.get_obs()
     limiter = CommandLimiter(cfg, observation)
+    ema = _ActionEMA(cfg.get("rtc_action_ema_alpha", 0.4))
     started_rtc = False
     try:
         status = model_client.call(func_name="rtc_start", obs=observation)
@@ -189,11 +230,12 @@ def _eval_rtc(task_env, model_client, cfg, debug):
             started = time.monotonic()
             observation = task_env.get_obs()
             raw = model_client.call(func_name="rtc_next_action")
+            smoothed = ema.apply(raw)
             if not debug:
                 _gate()  # A local disarm takes effect before the next command.
-                action = limiter.command(raw, observation)
+                action = _command(smoothed, observation, cfg, limiter)
             else:
-                action = raw
+                action = smoothed
 
             task_env.take_action(action)
             if not debug:

@@ -1,9 +1,9 @@
-"""Real-Time Chunking controller for asynchronous LingBot-VLA deployment.
+"""Real-Time Chunking controller for asynchronous Pi0.5 deployment.
 
 This module implements the controller side of RTC (arXiv:2506.07339): the
 robot consumes the current action chunk at a fixed rate while a background
-thread asks the flow policy to inpaint the next chunk.  The model-side PiGDM
-guidance is supplied by ``patches/lingbot-vla-v2/rtc_flow_matching.patch``.
+thread asks the flow policy to inpaint the next chunk. Model-side guidance is
+applied by the patched OpenPI sampler on every denoising step.
 
 The API deliberately separates issuing and committing an action.  A caller
 must execute the action returned by :meth:`next_action`, then call
@@ -46,6 +46,8 @@ class RTCConfig:
     control_hz: float = 25.0
     initial_delay_steps: int = 10
     delay_buffer_size: int = 10
+    safety_margin_steps: int = 1
+    blend_steps: int | None = None
     guidance_beta: float = 5.0
     prewarm_guided: bool = True
 
@@ -56,12 +58,16 @@ class RTCConfig:
             raise ValueError("minimum_execution_steps must be in [1, horizon)")
         if self.control_hz <= 0:
             raise ValueError("control_hz must be positive")
-        if not 0 <= self.initial_delay_steps < (
+        if not 0 <= self.initial_delay_steps + self.safety_margin_steps < (
             self.prediction_horizon - self.minimum_execution_steps
         ):
-            raise ValueError("initial_delay_steps leaves no RTC overlap")
+            raise ValueError("initial delay plus safety margin leaves no RTC overlap")
         if self.delay_buffer_size < 1:
             raise ValueError("delay_buffer_size must be >= 1")
+        if self.safety_margin_steps < 0:
+            raise ValueError("safety_margin_steps must be >= 0")
+        if self.blend_steps is not None and self.blend_steps < 1:
+            raise ValueError("blend_steps must be >= 1 when configured")
         if self.guidance_beta <= 0:
             raise ValueError("guidance_beta must be positive")
 
@@ -73,7 +79,12 @@ def latency_to_steps(latency_ms: float, control_hz: float, margin_steps: int = 1
     return int(math.ceil(latency_ms * control_hz / 1000.0)) + margin_steps
 
 
-def soft_mask_weights(horizon: int, start_steps: int, delay_steps: int) -> np.ndarray:
+def soft_mask_weights(
+    horizon: int,
+    start_steps: int,
+    delay_steps: int,
+    blend_steps: int | None = None,
+) -> np.ndarray:
     """Return the exponential RTC soft mask from Eq. 4 of the paper."""
     if not 0 <= start_steps < horizon:
         raise ValueError("start_steps must be in [0, horizon)")
@@ -85,9 +96,12 @@ def soft_mask_weights(horizon: int, start_steps: int, delay_steps: int) -> np.nd
 
     weights = np.zeros(horizon, dtype=np.float32)
     weights[:delay_steps] = 1.0
-    denominator = overlap - delay_steps + 1
-    for index in range(delay_steps, overlap):
-        c_i = (overlap - index) / denominator
+    transition_steps = overlap - delay_steps
+    if blend_steps is not None:
+        transition_steps = min(transition_steps, blend_steps)
+    denominator = transition_steps + 1
+    for index in range(delay_steps, delay_steps + transition_steps):
+        c_i = (delay_steps + transition_steps - index) / denominator
         weights[index] = c_i * np.expm1(c_i) / np.expm1(1.0)
     return weights
 
@@ -99,6 +113,7 @@ def build_rtc_guidance(
     beta: float,
     generation: int,
     request_id: int,
+    blend_steps: int | None = None,
 ) -> dict[str, Any]:
     """Build a right-padded physical-action guidance payload."""
     chunk = np.asarray(action_chunk, dtype=np.float32)
@@ -113,7 +128,9 @@ def build_rtc_guidance(
     target[: remaining.shape[0]] = remaining
     return {
         "actions": target,
-        "weights": soft_mask_weights(horizon, start_steps, delay_steps),
+        "weights": soft_mask_weights(
+            horizon, start_steps, delay_steps, blend_steps=blend_steps
+        ),
         "beta": float(beta),
         "start_steps": int(start_steps),
         "delay_steps": int(delay_steps),
@@ -333,7 +350,7 @@ class RealTimeChunkingController:
                 assert self._physical_chunk is not None
                 start_steps = self._cursor
                 overlap = self.config.prediction_horizon - start_steps
-                predicted_delay = max(self._delay_steps)
+                predicted_delay = max(self._delay_steps) + self.config.safety_margin_steps
                 if predicted_delay >= overlap:
                     self._background_error = RTCPlanExhausted(
                         f"predicted delay {predicted_delay} leaves no overlap {overlap}"
@@ -369,6 +386,7 @@ class RealTimeChunkingController:
                     beta=self.config.guidance_beta,
                     generation=generation,
                     request_id=request_id,
+                    blend_steps=self.config.blend_steps,
                 )
                 request["_rtc_context"] = {
                     "generation": generation,

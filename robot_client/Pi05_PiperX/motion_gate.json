@@ -3,8 +3,7 @@
   "control_hz": 25.0,
   "execute_steps": 15,
   "execution_mode": "rtc",
-  "max_command_velocity_rad_s": 2.0,
-  "max_raw_target_error_rad": 1.0,
-  "max_command_tracking_error_rad": 0.5,
-  "max_gripper_rate_s": 5.0
+  "software_safety_enabled": false,
+  "rtc_action_ema_alpha": 0.4,
+  "rtc_trigger_step": 20
 }

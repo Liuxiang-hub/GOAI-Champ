@@ -100,6 +100,25 @@ class DeployModeTest(unittest.TestCase):
         self.assertEqual(client.calls.count("get_action"), 2)
         self.assertNotIn("rtc_start", client.calls)
 
+    def test_action_ema_and_reset(self):
+        first = action(0.0)
+        second = action(1.0)
+        ema = deploy._ActionEMA(0.4)
+        np.testing.assert_allclose(ema.apply(first)["left_arm_joint_state"], 0.0)
+        np.testing.assert_allclose(ema.apply(second)["left_arm_joint_state"], 0.4)
+        reset = deploy._ActionEMA(0.4)
+        np.testing.assert_allclose(reset.apply(second)["left_arm_joint_state"], 1.0)
+
+    def test_safety_bypass_only_rejects_non_finite_values(self):
+        cfg = self.config("rtc")
+        cfg["software_safety_enabled"] = False
+        raw = action(10.0)
+        result = deploy._command(raw, observation(), cfg, mock.Mock())
+        np.testing.assert_array_equal(result["left_arm_joint_state"], 10.0)
+        raw["left_arm_joint_state"][0] = np.nan
+        with self.assertRaises(ValueError):
+            deploy._command(raw, observation(), cfg, mock.Mock())
+
 
 if __name__ == "__main__":
     unittest.main()

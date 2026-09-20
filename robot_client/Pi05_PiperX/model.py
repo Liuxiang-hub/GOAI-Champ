@@ -9,6 +9,7 @@ The adapter keeps RTC targets in physical absolute-action space.  The Pi0.5
 server maps them through the checkpoint's real DeltaActions, Normalize and
 PadStatesAndActions transforms before applying per-denoising-step guidance.
 """
+import math
 import threading
 
 import numpy as np
@@ -61,6 +62,8 @@ class Model(ModelTemplate):
         if state.shape != (self.action_dim,) or not np.isfinite(state).all():
             raise ValueError('Invalid robot state')
         prompt = obs.get('instruction', obs.get('instructions'))
+        if not prompt:
+            prompt = self.cfg.get('default_instruction', '')
         if isinstance(prompt, (list, tuple)):
             prompt = prompt[0] if prompt else ''
         if isinstance(prompt, bytes):
@@ -101,10 +104,6 @@ class Model(ModelTemplate):
         arr = np.stack(rows).astype(np.float32)
         if arr.shape != (50, 14) or not np.isfinite(arr).all():
             raise ValueError(f'Invalid remote action chunk: {arr.shape}')
-        # Gripper undershoot below 0 is a normalization artifact (observed down
-        # to -0.011, i.e. ~1 mm past closed); the physical stroke is [0, 1].
-        arr[:, 6] = np.clip(arr[:, 6], 0.0, 1.0)
-        arr[:, 13] = np.clip(arr[:, 13], 0.0, 1.0)
         return arr
 
     def _call(self, translated):
@@ -172,10 +171,22 @@ class Model(ModelTemplate):
     def rtc_start(self, obs):
         self.rtc_stop()
         self.update_obs(obs)
+        horizon = 50
+        lookahead_ratio = float(self.cfg.get('rtc_lookahead_ratio', 0.4))
+        if not 0.0 < lookahead_ratio < 1.0:
+            raise ValueError('rtc_lookahead_ratio must be between 0 and 1')
+        trigger_cursor = int(self.cfg.get(
+            'rtc_trigger_step', math.ceil(horizon * (1.0 - lookahead_ratio))))
+        if not 1 <= trigger_cursor < horizon:
+            raise ValueError('rtc_trigger_step must be in [1, horizon)')
         self.rtc = RealTimeChunkingController(self._rtc_infer, RTCConfig(
-            minimum_execution_steps=int(self.cfg.get('rtc_start_steps', 5)),
+            prediction_horizon=horizon,
+            minimum_execution_steps=trigger_cursor,
             control_hz=float(self.cfg.get('control_hz', 10)),
-            initial_delay_steps=int(self.cfg.get('rtc_initial_delay_steps', 22)),
+            initial_delay_steps=int(self.cfg.get('rtc_initial_delay_steps', 11)),
+            delay_buffer_size=int(self.cfg.get('rtc_latency_window', 5)),
+            safety_margin_steps=int(self.cfg.get('rtc_safety_margin_steps', 2)),
+            blend_steps=int(self.cfg.get('rtc_blend_steps', 5)),
             prewarm_guided=bool(self.cfg.get('rtc_prewarm_guided', True)),
         ), rebase_guidance=self._rebase)
         self.rtc.start(self.observation)
