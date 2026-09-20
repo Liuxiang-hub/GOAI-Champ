@@ -171,8 +171,8 @@ def _eval_synchronous_prefix(task_env, model_client, cfg, debug):
     prefix_steps = int(cfg.get("execute_steps", 15))
     if control_hz <= 0:
         raise ValueError("control_hz must be positive")
-    if not 1 <= prefix_steps <= 50:
-        raise ValueError("execute_steps must be between 1 and 50")
+    if prefix_steps <= 0:
+        raise ValueError("execute_steps must be positive")
 
     model_client.call(func_name="reset")
     limiter = CommandLimiter(cfg, task_env.get_obs())
@@ -183,8 +183,11 @@ def _eval_synchronous_prefix(task_env, model_client, cfg, debug):
         chunk = model_client.call(func_name="get_action")
         if not isinstance(chunk, (list, tuple)) or not chunk:
             raise ValueError("Pi05_PiperX returned an empty or invalid action chunk")
-        if len(chunk) > prefix_steps:
-            chunk = chunk[:prefix_steps]
+        if len(chunk) < prefix_steps:
+            raise ValueError(
+                f"execute_steps={prefix_steps} exceeds action horizon={len(chunk)}"
+            )
+        chunk = chunk[:prefix_steps]
 
         for chunk_index, raw in enumerate(chunk):
             started = time.monotonic()
@@ -198,7 +201,7 @@ def _eval_synchronous_prefix(task_env, model_client, cfg, debug):
             task_env.take_action(action)
             if not debug:
                 print(
-                    "SYNC15_COMMAND",
+                    "SYNC_PREFIX_COMMAND",
                     json.dumps(
                         {
                             "chunk_index": chunk_index,

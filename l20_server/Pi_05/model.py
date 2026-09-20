@@ -223,16 +223,34 @@ class Model(ModelTemplate):
         )
 
     def get_model(self, model_cfg: dict[str, Any]):
-        train_config_name = model_cfg.get("train_config_name", "pi05_aloha")
-        repo_id = model_cfg.get("repo_id", "1118")
-        model_root = _resolve_pi05_model_root(model_cfg)
+        self.train_config_name = model_cfg.get(
+            "train_config_name", "pi05_base_piper6_lora_real"
+        )
+        self.repo_id = model_cfg.get(
+            "repo_id", "yangchenjie/robodojo_piper6_v3"
+        )
+        self.model_root = _resolve_pi05_model_root(model_cfg)
+        self.checkpoint_family = str(model_cfg.get("ckpt_name", self.model_root.parent.name))
+        self.checkpoint_step = str(
+            model_cfg.get("checkpoint_num", self.model_root.name)
+        )
+        self.num_denoising_steps = int(model_cfg.get("num_denoising_steps", 10))
+        if self.num_denoising_steps <= 0:
+            raise ValueError("num_denoising_steps must be positive")
 
-        config = _config.get_config(train_config_name)
+        config = _config.get_config(self.train_config_name)
         norm_stats = None
-        if repo_id is not None:
-            norm_stats = _normalize.load(model_root / "assets" / str(repo_id))
+        if self.repo_id is not None:
+            norm_stats = _normalize.load(
+                self.model_root / "assets" / str(self.repo_id)
+            )
 
-        return _policy_config.create_trained_policy(config, str(model_root), norm_stats=norm_stats)
+        policy = _policy_config.create_trained_policy(
+            config, str(self.model_root), norm_stats=norm_stats
+        )
+        policy._sample_kwargs = dict(policy._sample_kwargs)
+        policy._sample_kwargs["num_steps"] = self.num_denoising_steps
+        return policy
 
     def update_obs(self, obs):
         self.update_obs_batch([obs])
@@ -310,6 +328,21 @@ class Model(ModelTemplate):
 
     def reset_obsrvationwindows(self):
         self.reset()
+
+    def status(self):
+        return {
+            "metadata": {
+                "policy_family": "pi05",
+                "checkpoint_family": self.checkpoint_family,
+                "checkpoint_step": self.checkpoint_step,
+                "train_config_name": self.train_config_name,
+                "repo_id": self.repo_id,
+                "action_horizon": int(self.policy._model.action_horizon),
+                "model_action_dim": int(self.policy._model.action_dim),
+                "physical_action_dim": 14,
+                "num_denoising_steps": self.num_denoising_steps,
+            }
+        }
 
 
 def encode_obs(observation, action_type, robot_action_dim_info):

@@ -1,0 +1,16 @@
+policy_name: Pi_05
+protocol: ws
+host: 0.0.0.0
+port: 6198
+bench_name: RoboDojo
+task_name: goai_dual_arm
+ckpt_name: real-piper6-lora/7594
+env_cfg_type: piper_x
+action_type: joint
+seed: 0
+eval_batch: false
+
+# These remain unchanged while checkpoints use the same training recipe.
+train_config_name: pi05_base_piper6_lora_real
+repo_id: yangchenjie/robodojo_piper6_v3
+num_denoising_steps: 10

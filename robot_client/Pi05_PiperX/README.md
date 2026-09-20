@@ -6,8 +6,8 @@ XPolicyLab WebSocket adapter for a remote Pi0.5 dual-PIPER-X inference server.
 
 - Downstream endpoint: `ws://0.0.0.0:6007`
 - Upstream endpoint: `ws://127.0.0.1:6198`
-- Checkpoint: `real-piper6-lora/7594`
-- Action shape: `(50, 14)`
+- Checkpoint: selected only by the upstream L20 service
+- Action shape: discovered from upstream metadata; each physical step is 14D
 - Action order: `[left arm 6, left gripper, right arm 6, right gripper]`
 - Action semantics: absolute joint targets
 - Current deployment approach: synchronous prefix execution at nominal 25 Hz
@@ -19,9 +19,9 @@ See the [field verification note](../../docs/FIELD_STATUS_20260920.md).
 
 ## Configuration
 
-`deploy.yml` configures endpoints, camera aliases and the 25 Hz nominal
-control rate. The synchronous prefix length is `execute_steps=15`.
-The execution loop separately reads motion_gate.json. See
+`deploy.yml` configures endpoints and camera aliases. The adapter returns the
+complete upstream action chunk. `motion_gate.json` is the single source for
+the nominal control rate and synchronous `execute_steps`. See
 [运行指南](../../docs/RUNNING.md) and [配置说明](../../docs/CONFIGURATION.md).
 `motion_gate.json` is the safe repository default and has hardware output
 disabled. `motion_gate.2223-runtime-snapshot.json` is a historical profile,
@@ -38,8 +38,8 @@ profile. Joint limits, velocity limits, tracking checks, and gripper limits
 remain active.
 
 `motion_gate.robot6-ok.json` records the field-validated Robot 6 profile from
-2026-09-20: HRT on port 6009, Pi0.5 `real-piper6-lora/7594` upstream on port
-6198, synchronous prefix execution at 25 Hz, the first 15 actions from each
+2026-09-20: HRT on port 6009, Pi0.5 upstream on port 6198, synchronous prefix
+execution at 25 Hz, the first 15 actions from each
 50-action chunk, software safety disabled, and both left/right J5 coordinate
 signs set to `-1`. Hardware output is deliberately disabled in the stored
 profile. This label means the execution flow completed on Robot 6; it is not
