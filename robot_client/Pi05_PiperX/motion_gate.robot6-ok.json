@@ -1,8 +1,9 @@
 {
+  "profile": "robot6-ok-20260920",
   "hardware_output_enabled": false,
   "control_hz": 25.0,
   "execute_steps": 15,
-  "execution_mode": "rtc",
+  "execution_mode": "synchronous_prefix",
   "software_safety_enabled": false,
   "rtc_action_ema_alpha": 0.4,
   "rtc_trigger_step": 20,

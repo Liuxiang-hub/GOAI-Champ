@@ -57,6 +57,7 @@ class _ActionEMA:
 def _command(raw, observation, cfg, limiter):
     hardware = _finite_action(raw)
     hardware["left_arm_joint_state"][4] *= float(cfg.get("left_j5_sign", 1.0))
+    hardware["right_arm_joint_state"][4] *= float(cfg.get("right_j5_sign", 1.0))
     if bool(cfg.get("software_safety_enabled", True)):
         return limiter.command(hardware, observation)
     return hardware

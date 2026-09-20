@@ -129,6 +129,16 @@ class DeployModeTest(unittest.TestCase):
         self.assertEqual(result["left_arm_joint_state"][4], -0.25)
         self.assertEqual(raw["left_arm_joint_state"][4], 0.25)
 
+    def test_right_j5_hardware_direction_is_adapted_once(self):
+        cfg = self.config("synchronous_prefix")
+        cfg["software_safety_enabled"] = False
+        cfg["right_j5_sign"] = -1.0
+        raw = action(0.0)
+        raw["right_arm_joint_state"][4] = 0.25
+        result = deploy._command(raw, observation(), cfg, mock.Mock())
+        self.assertEqual(result["right_arm_joint_state"][4], -0.25)
+        self.assertEqual(raw["right_arm_joint_state"][4], 0.25)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -32,6 +32,8 @@ class Model(ModelTemplate):
         self.cfg = dict(model_cfg)
         if float(self.cfg.get('left_j5_sign', 1.0)) not in (-1.0, 1.0):
             raise ValueError('left_j5_sign must be -1 or 1')
+        if float(self.cfg.get('right_j5_sign', 1.0)) not in (-1.0, 1.0):
+            raise ValueError('right_j5_sign must be -1 or 1')
         if self.cfg['action_type'] != 'joint':
             raise ValueError('Pi05 real-piper6-lora/7594 supports joint actions only')
         self.dims = get_robot_action_dim_info(self.cfg['env_cfg_type'])
@@ -64,6 +66,7 @@ class Model(ModelTemplate):
         if state.shape != (self.action_dim,) or not np.isfinite(state).all():
             raise ValueError('Invalid robot state')
         state[4] *= float(self.cfg.get('left_j5_sign', 1.0))
+        state[11] *= float(self.cfg.get('right_j5_sign', 1.0))
         prompt = obs.get('instruction', obs.get('instructions'))
         if not prompt:
             prompt = self.cfg.get('default_instruction', '')

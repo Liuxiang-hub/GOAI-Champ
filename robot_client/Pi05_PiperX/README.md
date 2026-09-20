@@ -37,6 +37,14 @@ and no initial-pose envelope. Hardware output remains disabled in the stored
 profile. Joint limits, velocity limits, tracking checks, and gripper limits
 remain active.
 
+`motion_gate.robot6-ok.json` records the field-validated Robot 6 profile from
+2026-09-20: HRT on port 6009, Pi0.5 `real-piper6-lora/7594` upstream on port
+6198, synchronous prefix execution at 25 Hz, the first 15 actions from each
+50-action chunk, software safety disabled, and both left/right J5 coordinate
+signs set to `-1`. Hardware output is deliberately disabled in the stored
+profile. This label means the execution flow completed on Robot 6; it is not
+evidence of task success or a profile for another robot.
+
 ## Dependencies
 
 The adapter is loaded inside an XPolicyLab checkout and imports its
