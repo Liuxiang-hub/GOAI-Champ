@@ -23,6 +23,7 @@ rtc_initial_delay_steps: 11
 rtc_prewarm_guided: true
 control_hz: 25
 execution_mode: rtc
+left_j5_sign: -1.0
 camera_mapping:
   cam_high: [cam_head, cam_high]
   cam_left_wrist: [cam_left_wrist]

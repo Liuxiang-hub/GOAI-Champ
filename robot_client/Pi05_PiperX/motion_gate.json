@@ -5,5 +5,6 @@
   "execution_mode": "rtc",
   "software_safety_enabled": false,
   "rtc_action_ema_alpha": 0.4,
-  "rtc_trigger_step": 20
+  "rtc_trigger_step": 20,
+  "left_j5_sign": -1.0
 }
