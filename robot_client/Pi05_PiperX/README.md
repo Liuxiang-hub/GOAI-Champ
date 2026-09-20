@@ -26,7 +26,11 @@ are counted and discarded.
 
 ## Configuration
 
-`deploy.yml` configures the WebSocket endpoints and synchronous prefix.
+`deploy.yml` configures endpoints, camera aliases, synchronous prefix and RTC
+initialization: start_steps=5, initial_delay_steps=22, prewarm_guided=true,
+control_hz=25. The 15-step synchronous prefix is not the RTC trigger interval.
+The execution loop separately reads motion_gate.json. See
+[运行指南](../../docs/RUNNING.md) and [配置说明](../../docs/CONFIGURATION.md).
 `motion_gate.json` is the safe repository default and has hardware output
 disabled. `motion_gate.2223-runtime-snapshot.json` records the parameters from
 the running field machine and must not be enabled without on-site supervision.

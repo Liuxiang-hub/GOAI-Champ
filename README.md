@@ -2,6 +2,16 @@
 
 HUST HRT GOAI 双 PIPER-X 真机测评部署代码快照。
 
+## 决赛核查材料
+
+本仓库是依赖XPolicyLab/OpenPI的部署覆盖代码，不是独立安装包。
+材料入口：[核查说明](docs/FINAL_SUBMISSION.md)、[运行指南](docs/RUNNING.md)、
+[配置说明](docs/CONFIGURATION.md)、[修订记录](docs/DOCUMENTATION_REVIEW.md)。
+权重：[ModelScope · LiuXiangg/HRT_GOAI](https://www.modelscope.cn/models/LiuXiangg/HRT_GOAI)。
+检查点对应关系及文件核验状态见[模型说明](docs/MODEL_WEIGHTS.md)。
+
+当前源码包含模型内引导，但历史回放尚未绑定此版本；最终现场一致性需核对实际加载文件。
+
 本仓库当前归档的是 2026-09-20 在 **2223 机械臂电脑**实际运行的
 `Pi05_PiperX` 客户端适配器，以及用于本地模拟官方任务派发的工具。
 
@@ -46,9 +56,9 @@ PadStatesAndActions 变换为 `(50, 32)` 模型空间约束。Pi0.5 在每个 JA
 本仓库不包含 checkpoint、相机数据、日志、令牌、密码、私钥或 `.env`。
 相关 XPolicyLab 代码按仓库中的 Apache-2.0 `LICENSE` 分发。
 
-## 当前 L20 映射
+## L20映射记录（待现场核定）
 
-L20 运行文件已逐文件读取、备份、部署并记录哈希。启动脚本当前映射是：
+本README原始部署记录给出的映射是：
 
 - `swap_arms=false`
 - `swap_left_q4_q5=true`
@@ -56,4 +66,4 @@ L20 运行文件已逐文件读取、备份、部署并记录哈希。启动脚�
 - `right_wrist_perm=546`
 
 这些现场实验性重排不是 checkpoint 发布格式本身的要求，仍是尚未消除的真机风险。
-本次 RTC 改动没有改变这些映射。
+历史快照另记右腕654、右臂交换关闭。最终值须以实际进程的配置核定，源码默认值不能证明现场值。

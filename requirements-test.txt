@@ -1,0 +1,3 @@
+# Minimal CPU-only tests; not a field deployment lockfile.
+# Exact field versions are not recorded in the source snapshot.
+numpy
