@@ -22,16 +22,6 @@ Do not deploy these files over a different OpenPI revision without reviewing
 the diff. `SOURCE_SHA256.md` records historical file hashes. The overlay must
 be used with its matching XPolicyLab/OpenPI environment.
 
-## Archived compatibility record
-
-`lingbot8884/goai-lingbot-10-denoising.conf` is the systemd drop-in used by
-Robot 6 HRT. It serves `global_step_8884` on port 8008 with 10 denoising
-steps. The recorded-observation smoke test on 2026-09-20 confirmed metadata
-`num_denoising_steps=10`, finite `(15, 14)` output after HRT prefix slicing,
-and approximately 1.77 seconds per inference. Hardware output was disabled
-and all smoke-test actions were discarded. This record is not part of the
-current Pi0.5 `real-piper6-lora/7594` deployment contract.
-
 ## 配置与依赖补充
 
 本目录不含完整上游源码、依赖锁文件或模型端部署YAML。见

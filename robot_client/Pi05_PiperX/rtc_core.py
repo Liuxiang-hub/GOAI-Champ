@@ -284,7 +284,7 @@ class RealTimeChunkingController:
             self._running = True
             self._thread = threading.Thread(
                 target=self._inference_loop,
-                name="lingbot-rtc-inference",
+                name="pi05-async-inference",
                 daemon=True,
             )
             self._thread.start()

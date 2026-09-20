@@ -45,24 +45,6 @@ signs set to `-1`. Hardware output is deliberately disabled in the stored
 profile. This label means the execution flow completed on Robot 6; it is not
 evidence of task success or a profile for another robot.
 
-## Archived Robot 6 compatibility record
-
-`model_8884_bridge.py` and `deploy.8884.yml` switch HRT port 6009 to the
-verified local FINAL adapter on port 6008, which forwards to the L20
-`global_step_8884` service. The Robot 6 execution profile remains synchronous
-at 25 Hz and executes the first 15 actions from each 50-action chunk. Both J5
-coordinate signs remain `-1` on observation input and hardware output.
-
-This compatibility record is separate from the current Pi0.5
-`real-piper6-lora/7594` runtime contract above.
-
-The 2026-09-20 recorded-observation smoke test confirmed checkpoint
-`global_step_8884`, normalization SHA256
-`7a0bbbbdc9d83e3457fd47e178defb67739d3ae5d4fe0e259a4fa1d30c69f91a`,
-finite `(15, 14)` output, and discarded all actions with hardware output
-disabled. This validates the inference path only; it does not mark the 8884
-variant as physically successful on Robot 6.
-
 ## Dependencies
 
 The adapter is loaded inside an XPolicyLab checkout and imports its

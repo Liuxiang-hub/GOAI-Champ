@@ -73,6 +73,7 @@ HUST HRT 面向 GOAI 2026 双臂赛道构建的 Pi0.5 真机部署与复现仓�
 ```text
 GOAI-Champ/
 ├── assets/                         # README 展示素材
+├── archive/                        # 与当前Pi0.5主线隔离的历史技术栈
 ├── docs/                           # 核查、运行、配置、权重与现场记录
 ├── l20_server/                     # L20 模型服务适配与历史覆盖代码
 ├── robot_client/Pi05_PiperX/       # 机器人端适配、执行代码和配置
