@@ -22,7 +22,7 @@ rtc_latency_window: 5
 rtc_initial_delay_steps: 11
 rtc_prewarm_guided: true
 control_hz: 25
-execution_mode: rtc
+execution_mode: synchronous_prefix
 left_j5_sign: -1.0
 camera_mapping:
   cam_high: [cam_head, cam_high]

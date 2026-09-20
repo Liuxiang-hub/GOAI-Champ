@@ -2,6 +2,13 @@
 
 Snapshot date: 2026-09-20 (Asia/Shanghai)
 
+> 最新现场方案与真机记录见[现场运行说明](FIELD_STATUS_20260920.md)。下文保留历史参数和实验记录，不作为当前默认配置。
+
+> Historical record, not a live status report. Current repository code includes
+> model-internal guidance. Replay results below are not tied to that version.
+> Mapping values also differ from the root README and need field reconciliation.
+> See [修订记录](DOCUMENTATION_REVIEW.md).
+
 ## Provenance
 
 The files under `robot_client/Pi05_PiperX/` were copied from the working tree
@@ -52,8 +59,9 @@ checkpoint: real-piper6-lora/7594
 
 The RTC controller uses an asynchronous double buffer, commits the latest
 observation after every executed action, and rebases each returned absolute
-action chunk. The upstream OpenPI build does not implement guidance/inpainting,
-so this is not the full paper RTC algorithm.
+action chunk. The build described by this historical snapshot was recorded as
+not implementing guidance/inpainting. Current repository sampler code includes
+rtc_guided_euler_step and jax.vjp; the historical statement does not describe it.
 
 The released Pi05 checkpoint documentation describes 30 Hz training data, so
 25 Hz execution makes a 15-step prefix last 0.6 s instead of 0.5 s.
