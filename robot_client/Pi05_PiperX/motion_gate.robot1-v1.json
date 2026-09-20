@@ -1,8 +1,8 @@
 {
-  "hardware_output_enabled": true,
+  "hardware_output_enabled": false,
   "control_hz": 25.0,
   "execute_steps": 15,
-  "execution_mode": "rtc",
+  "execution_mode": "synchronous_prefix",
   "max_command_velocity_rad_s": 2.0,
   "max_raw_target_error_rad": 1.0,
   "max_command_tracking_error_rad": 0.5,

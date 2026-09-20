@@ -31,6 +31,12 @@ are counted and discarded.
 disabled. `motion_gate.2223-runtime-snapshot.json` records the parameters from
 the running field machine and must not be enabled without on-site supervision.
 
+`motion_gate.robot1-v1.json` records the synchronous first-version parameters
+validated on Robot 1: 25 Hz, the first 15 actions from each 50-action chunk,
+and no initial-pose envelope. Hardware output remains disabled in the stored
+profile. Joint limits, velocity limits, tracking checks, and gripper limits
+remain active.
+
 ## Dependencies
 
 The adapter is loaded inside an XPolicyLab checkout and imports its
