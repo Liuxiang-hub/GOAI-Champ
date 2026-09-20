@@ -1,69 +1,130 @@
-# GOAI-Champ
+# 🤖 GOAI-Champ：Pi0.5 双臂具身智能系统
 
-HUST HRT GOAI 双 PIPER-X 真机测评部署代码快照。
+![GOAI-Champ 双臂任务展示](assets/dual-arm-demo.png)
 
-## 决赛核查材料
+HUST HRT 面向 GOAI 2026 双臂赛道构建的 Pi0.5 真机部署与复现仓库。系统联合三路视觉、双臂关节与夹爪状态以及任务指令预测连续动作块，并通过同步前缀执行完成闭环控制。
 
-本仓库是依赖XPolicyLab/OpenPI的部署覆盖代码，不是独立安装包。
-材料入口：[核查说明](docs/FINAL_SUBMISSION.md)、[运行指南](docs/RUNNING.md)、
-[配置说明](docs/CONFIGURATION.md)、[修订记录](docs/DOCUMENTATION_REVIEW.md)。
-权重：[ModelScope · LiuXiangg/HRT_GOAI](https://www.modelscope.cn/models/LiuXiangg/HRT_GOAI)。
-检查点对应关系及文件核验状态见[模型说明](docs/MODEL_WEIGHTS.md)。
+[运行指南](docs/RUNNING.md) · [配置说明](docs/CONFIGURATION.md) · [模型权重](docs/MODEL_WEIGHTS.md) · [决赛核查材料](docs/FINAL_SUBMISSION.md) · [现场记录](docs/FIELD_STATUS_20260920.md)
 
-项目以 Pi0.5 为核心，结合三路视觉、双臂关节与夹爪状态以及任务指令预测动作块，
-通过机器人端适配器执行同步前缀控制。
-2026-09-20 现场核查见[现场运行说明](docs/FIELD_STATUS_20260920.md)。
-仓库同时保留历史部署快照与实验代码；最终一致性仍需核对实际加载文件。
+## 项目概览
 
-## 系统结构
+| 项目 | 当前实现 |
+|---|---|
+| 核心策略 | Pi0.5，六项 GOAI 任务联合微调 |
+| 机器人平台 | 双 PIPER-X，12 维机械臂关节 + 2 维夹爪 |
+| 感知输入 | 顶部相机、左右腕部相机、双臂状态、任务指令 |
+| 策略输出 | 50 步、14 维绝对关节与夹爪目标 |
+| 执行方式 | 每轮执行动作块前 15 步，再更新观测并重新推理 |
+| 名义控制频率 | 25 Hz；完整周期还包含观测、通信与模型推理时间 |
+| 当前权重 | `real-piper6-lora/7594` |
+| 权重下载 | [ModelScope · LiuXiangg/HRT_GOAI](https://www.modelscope.cn/models/LiuXiangg/HRT_GOAI) |
+
+> 本仓库保存决赛部署覆盖代码、配置、测试和复现文档，不是 XPolicyLab/OpenPI 的独立发行包。模型权重、原始数据、现场日志和访问凭据不提交到 Git。
+
+## 核心技术路线
 
 ```text
-测评环境（三路图像、双臂状态、任务指令）
-  -> Pi05_PiperX / 现场 HRT 策略适配器
-  -> L20 Pi0.5 模型服务
-  -> 50 步双臂动作预测
-  -> 同步前缀执行与下一轮观测更新
+三路相机 + 双臂状态 + 任务指令
+                │
+                ▼
+       Pi0.5 多模态策略服务（L20）
+                │
+                ▼
+        50 × 14 绝对目标动作块
+                │
+                ▼
+   机器人端坐标变换、关节映射与安全门控
+                │
+                ▼
+      执行前 15 步 → 更新观测 → 下一轮
 ```
 
-当前现场执行方案及仓库默认模式为 `synchronous_prefix`：模型返回50步动作，
-客户端执行前15步后更新观测并请求下一块，名义控制频率为25 Hz。
-该频率描述动作块内的节奏，完整循环还包含观测、通信和推理等待。
-关节顺序、方向及夹爪尺度由适配层与检查点变换共同处理。
+项目的重点不只是调用模型，而是完成模型动作空间与真实双 PIPER-X 控制链路之间的工程闭环：
 
-RTC异步调度与模型内VJP/PiGDM引导保留为实验功能，供回放与后续研究使用。
-现场反馈尚未达到预期，当前正式执行方案采用同步前缀控制；实验代码不代表
-已验证的真机性能收益。
+- **多模态动作预测**：接入顶部与双腕图像、机器人本体状态和语言指令，输出双臂协同动作块。
+- **检查点一致性**：服务端绑定训练配置、归一化统计与资产标识，避免只更换参数却遗漏配套统计。
+- **双臂坐标适配**：处理关节顺序、方向和夹爪尺度，使模型输出与不同真机配置对齐。
+- **同步前缀控制**：保留动作块的短时连贯性，并在每轮执行后重新获取观测，降低开环累积误差。
+- **默认安全门控**：公开配置默认关闭硬件输出，真机启用需要现场急停监护和单独确认。
 
-## 目录
+## 六项任务
 
-- `robot_client/Pi05_PiperX/`: 策略适配、执行代码和公开默认配置。
-- `l20_server/Pi_05/`: L20 Pi0.5 模型适配、策略变换与 JAX sampler 覆盖文件。
-- `tools/local_pi05_eval.py`: 本地模拟官方任务派发工具。
-- `tools/recorded_pi05_rtc_*.py`: 只读记录回放、A/B 和延迟测试。
-- `docs/FIELD_STATUS_20260920.md`: 最近现场配置与真机采集记录。
-- `docs/runtime-snapshot-2223.md`: 历史运行环境、文件来源和已知差异。
+| 任务 | 任务 | 任务 |
+|---|---|---|
+| Fill the Pen Holder | Insert the Charger | Put Objects into the Basket |
+| Stack and Cover the Blocks | Stack the Bowls | Stand Up the Bottles |
 
-## 安全说明
+封面图用于展示双臂操作场景，不作为单次模型成功率或比赛成绩证明。可复核的真机日志、模型版本及配置边界以[现场运行记录](docs/FIELD_STATUS_20260920.md)为准。
 
-仓库默认的 `motion_gate.json` 已将硬件输出关闭。历史运行参数保存在
-`motion_gate.2223-runtime-snapshot.json`，不代表最新现场配置，复制或启用可能导致机械臂运动。
-任何真机运行必须有现场急停监护并单独确认。
+## 当前实现与验证状态
 
-`deploy.py` 是现场源码快照，其中仍包含通过
-`/tmp/pi05_right_arm_probe_once.json` 触发右臂辨识动作的兼容路径。生产部署前应
-删除该路径或改为显式、受审计的运维命令。
+| 项目 | 状态 | 证据范围 |
+|---|---|---|
+| Pi0.5 7594 部署接口 | 已实现 | 50 步、14 维绝对动作；适配器和配置已开源 |
+| 同步前缀执行 | 已实现 | 25 Hz 名义控制、每轮执行前 15 步 |
+| Robot 6 配置 | 已记录 | 执行链路完成；不等同于任务成功判定 |
+| `global_step_8884` 兼容链路 | 已完成记录观测冒烟测试 | 输出为有限值 `(15, 14)`，测试时硬件输出关闭 |
+| 三路相机与 episode 保存 | 已有现场日志 | 包含环境初始化及任务数据产物，不包含人工成功标签 |
+| 新检查点 | 训练准备中 | 完成后补充 revision、文件校验、配置和真机结果 |
 
-本仓库不包含 checkpoint、相机数据、日志、令牌、密码、私钥或 `.env`。
-相关 XPolicyLab 代码按仓库中的 Apache-2.0 `LICENSE` 分发。
+仓库对“推理链路可运行”“机械臂真实执行”和“任务成功”作严格区分。未经人工标注的 episode 编号不会计作成功次数，离线动作误差也不会替代真机任务成功率。
 
-## L20映射记录（待现场核定）
+## 目录结构
 
-本README原始部署记录给出的映射是：
+```text
+GOAI-Champ/
+├── assets/                         # README 展示素材
+├── docs/                           # 核查、运行、配置、权重与现场记录
+├── l20_server/                     # L20 模型服务适配与历史覆盖代码
+├── robot_client/Pi05_PiperX/       # 机器人端适配、执行代码和配置
+├── tests/                          # 部署模式与变换回归测试
+├── tools/                          # 本地任务派发、回放与链路验证
+├── SOURCE_SHA256.md                # 历史源码文件校验记录
+└── requirements-test.txt           # 公开测试依赖
+```
 
-- `swap_arms=false`
-- `swap_left_q4_q5=true`
-- `swap_right_q4_q5=true`
-- `right_wrist_perm=546`
+## 快速核查
 
-这些现场实验性重排不是 checkpoint 发布格式本身的要求，仍是尚未消除的真机风险。
-历史快照另记右腕654、右臂交换关闭。最终值须以实际进程的配置核定，源码默认值不能证明现场值。
+### 1. 获取代码
+
+```bash
+git clone https://github.com/Liuxiang-hub/GOAI-Champ.git
+cd GOAI-Champ
+```
+
+### 2. 准备上游环境与权重
+
+本仓库需要放入对应的 XPolicyLab/OpenPI 环境中使用。权重从 [ModelScope](https://www.modelscope.cn/models/LiuXiangg/HRT_GOAI) 获取，并保留发布目录中的参数、`assets` 与归一化统计。完整要求见[模型说明](docs/MODEL_WEIGHTS.md)。
+
+### 3. 运行公开测试
+
+```bash
+python -m pip install -r requirements-test.txt
+python -m unittest discover -s tests -v
+```
+
+### 4. 核对部署配置
+
+正式运行前至少确认模型路径与 revision、训练配置、归一化资产、动作排列、左右臂映射、关节方向、服务端口及硬件输出门控。详见[运行指南](docs/RUNNING.md)与[配置说明](docs/CONFIGURATION.md)。
+
+## 安全边界
+
+- 仓库默认 `motion_gate.json` 关闭硬件输出。
+- 历史运行配置不是通用真机参数，不应直接复制到另一台机械臂。
+- `deploy.py` 中保留一次性右臂辨识兼容入口，生产部署前应删除或改成显式、可审计的运维命令。
+- 真机运行必须由现场人员监护，并确认急停、关节限位、速度限制和坐标映射。
+
+## 开源内容及价值
+
+仓库公开 Pi0.5 双 PIPER-X 部署适配、双臂动作与状态变换、同步动作块执行、配置样例、回归测试以及决赛核查文档。它将模型权重、训练资产、服务端配置、机器人映射和现场证据组织成可追溯链路，帮助复现者判断“代码可运行”“推理输出有效”和“真机任务完成”分别由哪些材料支持。
+
+上游框架、数据集、基础模型及机器人 SDK 受各自许可证约束。仓库内可分发代码以 [Apache-2.0](LICENSE) 发布。
+
+## 文档索引
+
+- [决赛技术真实性及一致性核查](docs/FINAL_SUBMISSION.md)
+- [运行与部署步骤](docs/RUNNING.md)
+- [配置字段与安全门控](docs/CONFIGURATION.md)
+- [模型权重与检查点说明](docs/MODEL_WEIGHTS.md)
+- [2026-09-20 现场运行核查](docs/FIELD_STATUS_20260920.md)
+- [文档修订记录](docs/DOCUMENTATION_REVIEW.md)
