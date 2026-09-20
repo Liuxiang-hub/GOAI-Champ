@@ -17,31 +17,19 @@ of each 50-action prediction, update observations, and request the next chunk.
 `deploy.py` reads the execution mode from `motion_gate.json` at episode start.
 See the [field verification note](../../docs/FIELD_STATUS_20260920.md).
 
-## Experimental RTC implementation
-
-RTC is retained for experimental evaluation. Field feedback has not established
-the expected benefit; it is not presented as the verified deployment approach.
-
-RTC guidance remains in physical absolute-action space until the L20 policy
-applies the checkpoint's DeltaActions, quantile normalization, and 14-to-32D
-padding transforms. The JAX sampler then applies VJP guidance at every
-denoising step. The adapter never synthesizes model normalization statistics.
-
-`rtc_start` performs a zero-weight guided warmup before exposing the first
-action. Every inference is tagged with `generation/request_id`; stale results
-are counted and discarded.
-
 ## Configuration
 
-`deploy.yml` configures endpoints, camera aliases, synchronous prefix and RTC
-initialization: rtc_trigger_step=20, rtc_initial_delay_steps=11,
-rtc_prewarm_guided=true, control_hz=25. Experimental parameters do not select
-the execution mode; the synchronous prefix length is execute_steps=15.
+`deploy.yml` configures endpoints, camera aliases and the 25 Hz nominal
+control rate. The synchronous prefix length is `execute_steps=15`.
 The execution loop separately reads motion_gate.json. See
 [运行指南](../../docs/RUNNING.md) and [配置说明](../../docs/CONFIGURATION.md).
 `motion_gate.json` is the safe repository default and has hardware output
 disabled. `motion_gate.2223-runtime-snapshot.json` is a historical profile,
 not the latest field configuration, and must not be enabled without on-site supervision.
+
+Legacy compatibility fields and archived asynchronous code remain in the
+source history but do not participate in the `synchronous_prefix` execution
+path.
 
 `motion_gate.robot1-v1.json` records the synchronous first-version parameters
 validated on Robot 1: 25 Hz, the first 15 actions from each 50-action chunk,
@@ -57,13 +45,16 @@ signs set to `-1`. Hardware output is deliberately disabled in the stored
 profile. This label means the execution flow completed on Robot 6; it is not
 evidence of task success or a profile for another robot.
 
-## Robot 6 global_step_8884 switch
+## Archived Robot 6 compatibility record
 
 `model_8884_bridge.py` and `deploy.8884.yml` switch HRT port 6009 to the
 verified local FINAL adapter on port 6008, which forwards to the L20
 `global_step_8884` service. The Robot 6 execution profile remains synchronous
 at 25 Hz and executes the first 15 actions from each 50-action chunk. Both J5
 coordinate signs remain `-1` on observation input and hardware output.
+
+This compatibility record is separate from the current Pi0.5
+`real-piper6-lora/7594` runtime contract above.
 
 The 2026-09-20 recorded-observation smoke test confirmed checkpoint
 `global_step_8884`, normalization SHA256

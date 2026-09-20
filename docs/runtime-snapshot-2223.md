@@ -4,10 +4,9 @@ Snapshot date: 2026-09-20 (Asia/Shanghai)
 
 > 最新现场方案与真机记录见[现场运行说明](FIELD_STATUS_20260920.md)。下文保留历史参数和实验记录，不作为当前默认配置。
 
-> Historical record, not a live status report. Current repository code includes
-> model-internal guidance. Replay results below are not tied to that version.
-> Mapping values also differ from the root README and need field reconciliation.
-> See [修订记录](DOCUMENTATION_REVIEW.md).
+> Historical record, not a live status report. The parameters, mappings and
+> replay notes below describe the archived 2223 snapshot and do not participate
+> in the current synchronous-prefix deployment.
 
 ## Provenance
 

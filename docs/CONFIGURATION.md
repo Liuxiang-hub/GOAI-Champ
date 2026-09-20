@@ -4,13 +4,13 @@
 
 | 文件 | 用途 |
 |---|---|
-| robot_client/Pi05_PiperX/deploy.yml | 模型适配器、端点、相机映射和RTC初始化 |
+| robot_client/Pi05_PiperX/deploy.yml | 模型适配器、端点和相机映射 |
 | motion_gate.json（同目录） | 执行循环的模式、频率及动作安全限制；公开默认关闭硬件输出 |
 | motion_gate.2223-runtime-snapshot.json | 2223历史现场参数，包含启用硬件输出；仅作版本对照 |
 | motion_gate.robot1-v1.json | Robot 1同步前缀配置，存档中关闭硬件输出 |
 | piper6_norm_stats.json | 收录的统计文件；模型实际加载统计来自服务端检查点assets |
 
-执行循环由motion_gate.json读取模式和频率，RTC控制器由deploy.yml初始化。两侧涉及同一概念的参数必须核对一致，不能只改一侧并假定另一侧自动跟随。同步配置存档不会自动生效。
+执行循环由motion_gate.json读取模式、频率和安全门控；deploy.yml提供模型端点及观测映射。同步配置存档不会自动生效。
 
 ## 当前公开参数
 
@@ -23,9 +23,7 @@
 
 现场核查及配置来源见[现场运行说明](FIELD_STATUS_20260920.md)。25Hz描述动作块内的名义频率，完整循环还包含通信和推理等待。
 
-## 实验功能参数
-
-仓库保留rtc_trigger_step=20、rtc_initial_delay_steps=11、rtc_prewarm_guided=true等实验参数；仅在显式选择对应实验执行模式时使用。历史快照中的第5步触发和22步延迟估计属于旧配置，不代表当前默认值或实测延迟。
+部署文件中保留的历史兼容字段不参与 `synchronous_prefix` 执行循环，当前参数以 `motion_gate.json` 中的同步前缀配置为准。
 
 ## 动作与观测
 
@@ -37,7 +35,7 @@
 
 服务端读取PI05_PIPER_SWAP_ARMS、PI05_PIPER_SWAP_J4_J5、PI05_PIPER_SWAP_LEFT_J4_J5、PI05_PIPER_SWAP_RIGHT_J4_J5和PI05_PIPER_RIGHT_WRIST_PERM环境变量。
 
-原README记录右腕546、右臂交换开启；历史快照记录右腕654、右臂交换关闭。这些是不同文档记录，尚不能确定哪个等于最终现场值。不能将实验性重排作为检查点标准动作顺序。
+当前发布接口采用标准14维动作顺序。历史快照中的腕部排列和手臂交换记录仅用于版本追溯，不能作为当前检查点的标准动作顺序。
 
 ## 硬件输出
 

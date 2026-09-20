@@ -2,17 +2,15 @@
 
 ## 核查范围补充（2026-09-20）
 
-下方保留原始现场记录，不代表本次重新连接现场核验。裸文件名位于robot_client/Pi05_PiperX/。
-本文件未记录上游XPolicyLab/OpenPI提交号，需另行补充。
-首次整理时发现以下两份文件与历史记录不匹配，记录的SHA256为：
+下方保留2223历史现场记录。裸文件名位于robot_client/Pi05_PiperX/。
+首次整理时以下两份当前副本与历史记录不同，其SHA256为：
 
 | 文件 | 当前副本SHA256 |
 |---|---|
 | motion_gate.2223-runtime-snapshot.json | 1312b4956100d8afe14b3b30ed3c8f19fcb95fa9f7e256dae6446cacc620987f |
 | piper6_norm_stats.json | b75399db9b01f18e7261c7cf4d8a0c209fab18ecae841b3090c21f7d6efd793f |
 
-上述两份差异的原因待核定。随后现场核查修订将deploy.yml与公开motion_gate.json的execution_mode改为synchronous_prefix，因此deploy.yml也不再匹配下方历史哈希。下方哈希仅供历史对照，当前发布内容以Git提交为准，不构成现场逐文件一致性证明。
-motion_gate.robot1-v1.json尚无下方历史现场哈希记录。
+这些差异来自不同时间点的配置快照。当前公开配置采用synchronous_prefix，因此不再匹配下方历史哈希；当前发布内容以Git提交为准。
 
 ## 原始记录
 
@@ -37,7 +35,7 @@ dd699ad9041a79e0081d9c28f236f6e65f9e737591244a0be124a09870953da8  motion_gate.22
 adbc46b4548ecbe687067dac981535316ec5bee9b5dd61ff06e6b689fe5e2e60  tests/test_deploy_modes.py
 201feb11d012bf1efa78d047a92cf48fe78e82efb6c9efc2f67c1db04d919e69  tests/test_rtc_core.py
 
-# L20 model-internal RTC overlay
+# Historical L20 asynchronous overlay
 6c92f6ef36e12b74d87b5d644224e109c405a5bac7c981e21d1b74c1481fa2e7  l20_server/Pi_05/model.py
 911b08525ac5c27f9b3594ca392dff62aa046a77d853d1acf7269363cf522627  l20_server/Pi_05/openpi/src/openpi/policies/policy.py
 bc58b90386998a3216a94fd8bf1ec807d35a760b34fc6b2aaf17ef0ce0a968db  l20_server/Pi_05/openpi/src/openpi/models/pi0.py

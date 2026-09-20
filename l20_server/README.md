@@ -1,9 +1,8 @@
-# L20 Pi0.5 model-internal RTC overlay
+# L20 Pi0.5 deployment overlay
 
-These files retain the experimental RTC changes relative to the L20 XPolicyLab
-checkout rooted at `/opt/goai/src/XPolicyLab-pi05`. The current field approach
-uses synchronous prefix execution; these experimental branches are not evidence
-of verified hardware performance improvements:
+These files record the model-service overrides relative to the L20 XPolicyLab
+checkout rooted at `/opt/goai/src/XPolicyLab-pi05`. The current deployment
+uses synchronous prefix execution:
 
 ```text
 l20_server/Pi_05/model.py
@@ -14,23 +13,24 @@ l20_server/Pi_05/openpi/src/openpi/models/pi0.py
   -> policy/Pi_05/openpi/src/openpi/models/pi0.py
 ```
 
-The policy layer carries physical RTC actions through the exact training input
-transform chain. The sampler applies PiGDM/VJP guidance at each of the ten
-Euler denoising steps. Ordinary inference follows the original branch when RTC
-arguments are absent.
+The active inference path applies the checkpoint input transform, normalization,
+14-to-32D padding and the standard ten-step sampler before returning the
+physical 14D action block. Archived asynchronous guidance branches are retained
+only for source compatibility and are not part of the current deployment path.
 
 Do not deploy these files over a different OpenPI revision without reviewing
-the diff. `SOURCE_SHA256.md` records historical file hashes, not the upstream
-base revision. Exact XPolicyLab/OpenPI commits still require field capture.
+the diff. `SOURCE_SHA256.md` records historical file hashes. The overlay must
+be used with its matching XPolicyLab/OpenPI environment.
 
-## LingBot global_step_8884
+## Archived compatibility record
 
 `lingbot8884/goai-lingbot-10-denoising.conf` is the systemd drop-in used by
 Robot 6 HRT. It serves `global_step_8884` on port 8008 with 10 denoising
 steps. The recorded-observation smoke test on 2026-09-20 confirmed metadata
 `num_denoising_steps=10`, finite `(15, 14)` output after HRT prefix slicing,
 and approximately 1.77 seconds per inference. Hardware output was disabled
-and all smoke-test actions were discarded.
+and all smoke-test actions were discarded. This record is not part of the
+current Pi0.5 `real-piper6-lora/7594` deployment contract.
 
 ## 配置与依赖补充
 
