@@ -27,26 +27,22 @@ git status --short
 ## 2. 放置代码和检查点
 
 机器人端：将robot_client/Pi05_PiperX对应到XPolicyLab的policy/Pi05_PiperX。
-模型端：按[l20_server说明](../l20_server/README.md)映射覆盖文件，并使用
-`l20_server/Pi_05/deploy.yml`启动Pi0.5模型服务。
+模型端：按[l20_server说明](../l20_server/README.md)映射覆盖文件，模型加载参数
+沿用L20实际运行配置。
 覆盖前保存原文件，并核对上游版本；本仓库未完整收录上游工程。
 
 权重获取与配置见[模型说明](MODEL_WEIGHTS.md)。模型服务使用上游XPolicyLab/OpenPI的模型端入口；机器人端deploy.yml仅用于策略适配器，不能用于启动模型服务。
 
-同一训练配方下切换权重时，只修改模型端deploy.yml中的一行：
+同一训练配方下切换权重时，保持 `ckpt_name: real-piper6-lora` 不变，只修改
+L20运行配置中的一行：
 
 ```yaml
-ckpt_name: real-piper6-lora/<新的训练保存步>
+checkpoint_num: <新的训练保存步>
 ```
 
-重启L20模型服务后，先读取其 `status` 元数据；确认checkpoint、horizon、动作维度
-和去噪步数，再启动机器人端适配器。机器人端配置不需要随检查点编号修改。
-
-模型端入口：
-
-```bash
-python setup_policy_server.py --config_path policy/Pi_05/deploy.yml
-```
+重启L20模型服务后，从启动日志确认实际checkpoint路径、训练配置和assets加载成功，
+再通过关闭硬件输出的观测回放确认返回形状仍为 `(50, 14)`。机器人端运行逻辑
+和执行前缀不随训练保存步修改。
 
 ## 3. 先验证CPU逻辑
 

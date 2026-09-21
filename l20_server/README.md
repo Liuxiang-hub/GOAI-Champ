@@ -7,8 +7,6 @@ uses synchronous prefix execution:
 ```text
 l20_server/Pi_05/model.py
   -> policy/Pi_05/model.py
-l20_server/Pi_05/deploy.yml
-  -> policy/Pi_05/deploy.yml
 l20_server/Pi_05/openpi/src/openpi/policies/policy.py
   -> policy/Pi_05/openpi/src/openpi/policies/policy.py
 l20_server/Pi_05/openpi/src/openpi/models/pi0.py
@@ -16,7 +14,7 @@ l20_server/Pi_05/openpi/src/openpi/models/pi0.py
 ```
 
 The active inference path applies the checkpoint input transform, normalization,
-14-to-32D padding and the configured sampler before returning the
+14-to-32D padding and the standard ten-step sampler before returning the
 physical 14D action block. Archived asynchronous guidance branches are retained
 only for source compatibility and are not part of the current deployment path.
 
@@ -26,7 +24,9 @@ be used with its matching XPolicyLab/OpenPI environment.
 
 ## 配置与依赖补充
 
-本目录不含完整上游源码或依赖锁文件。见
+本目录不含完整上游源码、依赖锁文件或L20运行配置。见
 [运行指南](../docs/RUNNING.md)和[权重说明](../docs/MODEL_WEIGHTS.md)。
-`deploy.yml`集中配置 `ckpt_name`、`train_config_name`、`repo_id`和
-`num_denoising_steps`。相同训练配方下只需修改 `ckpt_name` 路径末尾的训练步。
+当前实际配置使用 `ckpt_name=real-piper6-lora`、
+`train_config_name=pi05_base_piper6_lora_real` 和
+`repo_id=yangchenjie/robodojo_piper6_v3`；同配方新权重只修改
+`checkpoint_num`。

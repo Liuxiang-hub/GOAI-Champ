@@ -48,7 +48,7 @@ class FakeClient:
         if func_name == "rtc_commit":
             return {"generation": 1, "cursor": 1, "inflight": True}
         if func_name == "get_action":
-            return [action() for _ in range(50)]
+            return [action() for _ in range(3)]
         return None
 
 
@@ -97,7 +97,7 @@ class DeployModeTest(unittest.TestCase):
             deploy.eval_one_episode(env, client)
 
         self.assertEqual(env.count, 5)
-        self.assertEqual(client.calls.count("get_action"), 1)
+        self.assertEqual(client.calls.count("get_action"), 2)
         self.assertNotIn("rtc_start", client.calls)
 
     def test_action_ema_and_reset(self):

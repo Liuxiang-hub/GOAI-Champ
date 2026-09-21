@@ -16,7 +16,7 @@ HUST HRT 面向 GOAI 2026 双臂赛道构建的 Pi0.5 真机部署与复现仓�
 | 策略输出 | 50 步、14 维绝对关节与夹爪目标 |
 | 执行方式 | 每轮执行动作块前 15 步，再更新观测并重新推理 |
 | 名义控制频率 | 25 Hz；完整周期还包含观测、通信与模型推理时间 |
-| 检查点选择 | 由 `l20_server/Pi_05/deploy.yml` 单点配置 |
+| 检查点选择 | 由L20运行配置中的 `checkpoint_num` 选择 |
 | 权重下载 | [ModelScope · LiuXiangg/HRT_GOAI](https://www.modelscope.cn/models/LiuXiangg/HRT_GOAI) |
 
 > 本仓库保存决赛部署覆盖代码、配置、测试和复现文档，不是 XPolicyLab/OpenPI 的独立发行包。模型权重、原始数据、现场日志和访问凭据不提交到 Git。

@@ -1,4 +1,4 @@
-"""XPolicyLab protocol adapter for a compatible remote Pi0.5 service.
+"""XPolicyLab protocol adapter for the remote Pi05 (real-piper6-lora/7594) service.
 
 Modelled on policy/FinalGOAI: this adapter is itself an XPolicyLab ws server
 (the official Collector/eval-runner connect to it) whose Model forwards
@@ -35,11 +35,14 @@ class Model(ModelTemplate):
         if float(self.cfg.get('right_j5_sign', 1.0)) not in (-1.0, 1.0):
             raise ValueError('right_j5_sign must be -1 or 1')
         if self.cfg['action_type'] != 'joint':
-            raise ValueError('Pi0.5 Piper-X adapter supports joint actions only')
+            raise ValueError('Pi05 real-piper6-lora/7594 supports joint actions only')
         self.dims = get_robot_action_dim_info(self.cfg['env_cfg_type'])
         if self.dims != {'arm_dim': [6, 6], 'ee_dim': [1, 1]}:
             raise ValueError(f'Checkpoint requires two 6-joint arms and two grippers, got {self.dims}')
         self.action_dim = sum(self.dims['arm_dim']) + sum(self.dims['ee_dim'])
+        self.execute_steps = int(self.cfg.get('execute_steps', 15))
+        if not 1 <= self.execute_steps <= 50:
+            raise ValueError('execute_steps must be between 1 and 50')
         self.timeout = float(self.cfg.get('request_timeout_s', 60))
 
         self.url = self.cfg.get('pi05_url', 'ws://127.0.0.1:6198')
@@ -51,24 +54,6 @@ class Model(ModelTemplate):
             request_timeout_s=self.timeout,
             connect_timeout_s=60.0,
         )
-        upstream_status = self.client.call(func_name='status')
-        self.upstream_metadata = (
-            upstream_status.get('metadata', {})
-            if isinstance(upstream_status, dict) else {}
-        )
-        if self.upstream_metadata.get('policy_family') != 'pi05':
-            raise ValueError(
-                f"Expected Pi0.5 upstream, got {self.upstream_metadata!r}"
-            )
-        self.horizon = int(self.upstream_metadata['action_horizon'])
-        self.model_action_dim = int(self.upstream_metadata['model_action_dim'])
-        if self.horizon <= 0 or self.model_action_dim <= 0:
-            raise ValueError('Upstream action dimensions must be positive')
-        if int(self.upstream_metadata.get('physical_action_dim', -1)) != self.action_dim:
-            raise ValueError(
-                f"Upstream physical action dim does not match Piper-X: "
-                f"{self.upstream_metadata!r}"
-            )
         self.rtc = None
         self.observation = None
         self.last_diagnostics = {}
@@ -111,7 +96,8 @@ class Model(ModelTemplate):
                 translated[key] = obs[key]
         return translated
 
-    def _pack_steps(self, steps):
+    @staticmethod
+    def _pack_steps(steps):
         rows = []
         for step in steps:
             row = np.concatenate([
@@ -122,7 +108,7 @@ class Model(ModelTemplate):
             ])
             rows.append(row)
         arr = np.stack(rows).astype(np.float32)
-        if arr.shape != (self.horizon, self.action_dim) or not np.isfinite(arr).all():
+        if arr.shape != (50, 14) or not np.isfinite(arr).all():
             raise ValueError(f'Invalid remote action chunk: {arr.shape}')
         return arr
 
@@ -133,8 +119,7 @@ class Model(ModelTemplate):
         if not isinstance(response, dict):
             raise ValueError('Pi0.5 server did not return inference metadata')
         model_actions = np.asarray(response.get('_rtc_model_actions'), dtype=np.float32)
-        expected_model_shape = (self.horizon, self.model_action_dim)
-        if model_actions.shape != expected_model_shape or not np.isfinite(model_actions).all():
+        if model_actions.shape != (50, 32) or not np.isfinite(model_actions).all():
             raise ValueError(f'Invalid Pi0.5 model-space action chunk: {model_actions.shape}')
         context = response.get('_rtc_context')
         if not isinstance(context, dict):
@@ -160,10 +145,10 @@ class Model(ModelTemplate):
             raise RuntimeError('update_obs must precede get_action')
         response = self._call(self.observation)
         actions = response['action']
-        self.last_diagnostics = {'upstream': self.url, 'action_horizon': self.horizon}
+        self.last_diagnostics = {'upstream': self.url, 'execute_steps': self.execute_steps}
         # Server returns absolute joint targets in [left arm, left gripper,
         # right arm, right gripper] order. No second state addition or scaling.
-        return unpack_robot_state(actions.copy(), 'joint', self.dims)
+        return unpack_robot_state(actions[:self.execute_steps].copy(), 'joint', self.dims)
 
     def get_action_batch(self, env_idx_list=None):
         if env_idx_list not in (None, [0]):
@@ -192,7 +177,7 @@ class Model(ModelTemplate):
     def rtc_start(self, obs):
         self.rtc_stop()
         self.update_obs(obs)
-        horizon = self.horizon
+        horizon = 50
         lookahead_ratio = float(self.cfg.get('rtc_lookahead_ratio', 0.4))
         if not 0.0 < lookahead_ratio < 1.0:
             raise ValueError('rtc_lookahead_ratio must be between 0 and 1')
@@ -230,6 +215,6 @@ class Model(ModelTemplate):
             self.rtc = None
 
     def status(self):
-        return {'metadata': {'upstream': self.url, **self.upstream_metadata},
+        return {'metadata': {'upstream': self.url, 'ckpt': self.cfg.get('ckpt_name')},
                 'rtc': self.rtc.status() if self.rtc else None,
                 'diagnostics': self.last_diagnostics}

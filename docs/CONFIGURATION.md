@@ -4,7 +4,6 @@
 
 | 文件 | 用途 |
 |---|---|
-| l20_server/Pi_05/deploy.yml | Pi0.5检查点、训练配置、assets标识和去噪步数 |
 | robot_client/Pi05_PiperX/deploy.yml | 模型适配器、端点和相机映射 |
 | motion_gate.json（同目录） | 执行循环的模式、频率及动作安全限制；公开默认关闭硬件输出 |
 | motion_gate.2223-runtime-snapshot.json | 2223历史现场参数，包含启用硬件输出；仅作版本对照 |
@@ -12,8 +11,8 @@
 | piper6_norm_stats.json | 收录的统计文件；模型实际加载统计来自服务端检查点assets |
 
 执行循环由motion_gate.json读取模式、频率、执行前缀和安全门控；机器人端
-deploy.yml只提供模型端点及观测映射。模型适配器返回完整动作块，执行循环只在
-motion_gate.json指定的位置截取前缀，因此`execute_steps`没有第二份配置。
+deploy.yml同时保存适配器参数。当前现场版本在两处均记录`execute_steps=15`，
+切换配置时必须保持一致。
 
 ## 当前公开参数
 
@@ -26,11 +25,11 @@ motion_gate.json指定的位置截取前缀，因此`execute_steps`没有第二�
 
 ## 检查点切换
 
-`l20_server/Pi_05/deploy.yml`是检查点选择的唯一入口。同一训练配方下只修改
-`ckpt_name` 路径末尾的训练步。模型服务启动后通过 `status` 返回实际检查点、动作horizon、
-动作维度和去噪步数；机器人端据此校验兼容性，不再维护第二份检查点标签。
+L20运行配置是模型加载的唯一入口。同一训练配方下保持
+`ckpt_name=real-piper6-lora`，只修改 `checkpoint_num`。机器人端配置中的
+checkpoint文本不参与模型解析。
 
-`ckpt_name`中的训练步、`num_denoising_steps`和机器人端`execute_steps`分别表示
+`checkpoint_num`、sampler默认`num_steps`和机器人端`execute_steps`分别表示
 训练保存步、推理去噪次数和动作执行前缀，不能互相替代。
 
 现场核查及配置来源见[现场运行说明](FIELD_STATUS_20260920.md)。25Hz描述动作块内的名义频率，完整循环还包含通信和推理等待。

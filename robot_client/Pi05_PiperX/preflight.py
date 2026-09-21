@@ -35,11 +35,9 @@ def main():
                     started=time.perf_counter()
                     client.call(func_name='update_obs',obs=obs)
                     actions=client.call(func_name='get_action')
-                    metadata=client.call(func_name='status')['metadata']
-                    horizon=int(metadata['action_horizon'])
-                    assert len(actions)==horizon
+                    assert len(actions)==15
                     packed=np.stack([pack_robot_state({'state':x},'joint',dims) for x in actions])
-                    assert packed.shape==(horizon,14) and np.isfinite(packed).all()
+                    assert packed.shape==(15,14) and np.isfinite(packed).all()
                     row=dict(frame=frame,encoded=encoded,shape=list(packed.shape),latency_ms=(time.perf_counter()-started)*1000,max_first_jump_rad=float(np.abs(packed[0,joints]-state[joints]).max()),max_nextstate_error_rad=float(np.abs(packed[0,joints]-target[joints]).max()),gripper_min=float(packed[:,[6,13]].min()),gripper_max=float(packed[:,[6,13]].max()))
                     rows.append(row)
                     print(json.dumps(row),flush=True)
