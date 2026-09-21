@@ -165,6 +165,18 @@ class Model(ModelTemplate):
         # right arm, right gripper] order. No second state addition or scaling.
         return unpack_robot_state(actions[:self.execute_steps].copy(), 'joint', self.dims)
 
+    def get_action_with_metadata(self):
+        """Return the full chunk for a field-local RTC controller."""
+        if self.observation is None:
+            raise RuntimeError('update_obs must precede get_action_with_metadata')
+        response = self._call(self.observation)
+        self.last_diagnostics = {
+            'upstream': self.url,
+            'execute_steps': self.execute_steps,
+            'metadata_response': True,
+        }
+        return response
+
     def get_action_batch(self, env_idx_list=None):
         if env_idx_list not in (None, [0]):
             raise NotImplementedError('Pi05_PiperX supports one real environment per session')

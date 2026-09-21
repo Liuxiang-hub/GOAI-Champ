@@ -12,6 +12,7 @@ import time
 
 import numpy as np
 
+from .rtc_core import RTCConfig, RealTimeChunkingController
 from .safety import CommandLimiter
 
 
@@ -59,6 +60,45 @@ def _command(raw, observation, cfg, limiter):
     if bool(cfg.get("software_safety_enabled", True)):
         return limiter.command(hardware, observation)
     return hardware
+
+
+def _pack_action(action):
+    finite = _finite_action(action)
+    packed = np.concatenate(
+        [
+            finite["left_arm_joint_state"],
+            finite["left_ee_joint_state"],
+            finite["right_arm_joint_state"],
+            finite["right_ee_joint_state"],
+        ]
+    ).astype(np.float32)
+    if packed.shape != (14,):
+        raise ValueError(f"expected a 14-D Piper action, got {packed.shape}")
+    return packed
+
+
+def _unpack_action(packed):
+    value = np.asarray(packed, dtype=np.float32)
+    if value.shape != (14,) or not np.isfinite(value).all():
+        raise ValueError(f"invalid packed Piper action: {value.shape}")
+    return {
+        "left_arm_joint_state": value[0:6].copy(),
+        "left_ee_joint_state": value[6:7].copy(),
+        "right_arm_joint_state": value[7:13].copy(),
+        "right_ee_joint_state": value[13:14].copy(),
+    }
+
+
+def _rebase_guidance(chunk, old_observation, new_observation):
+    """Align arm targets to the latest measured state; keep grippers absolute."""
+    result = np.asarray(chunk, dtype=np.float32).copy()
+    if result.shape != (50, 14) or not np.isfinite(result).all():
+        raise ValueError(f"invalid RTC guidance chunk: {result.shape}")
+    old_state = _pack_action(old_observation["state"])
+    new_state = _pack_action(new_observation["state"])
+    arm_columns = [0, 1, 2, 3, 4, 5, 7, 8, 9, 10, 11, 12]
+    result[:, arm_columns] += new_state[arm_columns] - old_state[arm_columns]
+    return result
 
 
 def _run_right_arm_probe(task_env):
@@ -147,6 +187,12 @@ def _gate():
             "Pi05_PiperX motion gate is disabled; finish live preflight before enabling motion_gate.json"
         )
     return cfg
+
+
+def _execution_mode(cfg):
+    if "rtc_enabled" in cfg:
+        return "rtc_local" if bool(cfg["rtc_enabled"]) else "synchronous_prefix"
+    return cfg.get("execution_mode", "synchronous_prefix")
 
 
 def validate_action(action, obs, limit):
@@ -284,12 +330,98 @@ def _eval_rtc(task_env, model_client, cfg, debug):
             model_client.call(func_name="rtc_stop")
 
 
+def _eval_rtc_local(task_env, model_client, cfg, debug):
+    """Run RTC locally so per-step control never crosses the field/L20 link."""
+    control_hz = float(cfg["control_hz"])
+    if control_hz <= 0:
+        raise ValueError("control_hz must be positive")
+
+    model_client.call(func_name="reset")
+    initial_observation = task_env.get_obs()
+    limiter = CommandLimiter(cfg, initial_observation)
+    ema = _ActionEMA(cfg.get("rtc_action_ema_alpha", 0.4))
+
+    def infer(observation):
+        started = time.perf_counter()
+        model_client.call(func_name="update_obs", obs=observation)
+        uploaded = time.perf_counter()
+        response = model_client.call(func_name="get_action_with_metadata")
+        finished = time.perf_counter()
+        print(
+            "RTC_LOCAL_INFERENCE "
+            + json.dumps(
+                {
+                    "upload_ms": round((uploaded - started) * 1000, 3),
+                    "infer_and_return_ms": round((finished - uploaded) * 1000, 3),
+                    "total_ms": round((finished - started) * 1000, 3),
+                    "generation": observation.get("_rtc_context", {}).get("generation"),
+                    "request_id": observation.get("_rtc_context", {}).get("request_id"),
+                }
+            ),
+            flush=True,
+        )
+        return response
+
+    controller = RealTimeChunkingController(
+        infer,
+        RTCConfig(
+            prediction_horizon=50,
+            minimum_execution_steps=int(cfg.get("rtc_trigger_step", 20)),
+            control_hz=control_hz,
+            initial_delay_steps=int(cfg.get("rtc_initial_delay_steps", 5)),
+            delay_buffer_size=int(cfg.get("rtc_latency_window", 5)),
+            safety_margin_steps=int(cfg.get("rtc_safety_margin_steps", 2)),
+            blend_steps=int(cfg.get("rtc_blend_steps", 5)),
+            guidance_beta=float(cfg.get("rtc_guidance_beta", 5.0)),
+            prewarm_guided=bool(cfg.get("rtc_prewarm_guided", True)),
+        ),
+        rebase_guidance=_rebase_guidance,
+    )
+
+    controller.start(initial_observation)
+    print("RTC_LOCAL_START " + json.dumps(controller.status()), flush=True)
+    last_status = None
+    try:
+        while not task_env.is_episode_end():
+            started = time.monotonic()
+            observation = task_env.get_obs()
+            raw = _unpack_action(controller.next_action()["action"])
+            smoothed = ema.apply(raw)
+            if not debug:
+                _gate()
+                action = _command(smoothed, observation, cfg, limiter)
+            else:
+                action = smoothed
+
+            task_env.take_action(action)
+            limiter.commit(action)
+            time.sleep(max(0.0, 1.0 / control_hz - (time.monotonic() - started)))
+            if task_env.is_episode_end():
+                break
+
+            controller.commit(task_env.get_obs())
+            status = controller.status()
+            status_key = (
+                status["generation"],
+                status["request_id"],
+                status["inflight"],
+            )
+            if status_key != last_status:
+                print("RTC_LOCAL_STATUS " + json.dumps(status), flush=True)
+                last_status = status_key
+    finally:
+        controller.stop(timeout=float(cfg.get("rtc_stop_timeout_s", 65.0)))
+        print("RTC_LOCAL_STOP " + json.dumps(controller.status()), flush=True)
+
+
 def eval_one_episode(TASK_ENV, model_client):
     cfg = _gate()
     if _RIGHT_ARM_PROBE_FLAG.exists():
         return _run_right_arm_probe(TASK_ENV)
     debug = os.environ.get("EVAL_ENV_TYPE") == "debug"
-    mode = cfg.get("execution_mode", "synchronous_prefix")
+    mode = _execution_mode(cfg)
+    if mode == "rtc_local":
+        return _eval_rtc_local(TASK_ENV, model_client, cfg, debug)
     if mode == "rtc":
         return _eval_rtc(TASK_ENV, model_client, cfg, debug)
     if mode == "synchronous_prefix":

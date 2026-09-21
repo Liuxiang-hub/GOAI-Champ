@@ -27,6 +27,16 @@ deploy.yml同时保存适配器参数。2026-09-21 决赛初版在两处均记�
 | execute_steps | 20 | 每次消费预测动作块的前20步，再更新观测 |
 | execution_mode | synchronous_prefix | 当前现场方案及公开默认模式 |
 
+## RTC 开关
+
+HRT1 使用 `rtc_enabled` 作为唯一开关。默认配置为 `false`，强制使用同步 20 步
+方案；设为 `true` 时使用 `rtc_local`，RTC 控制器在现场进程内逐步消费动作，
+只有后台新 chunk 推理经过现场到 L20 的 WebSocket 链路。因此 25 Hz 动作循环
+不会逐步等待公网 RPC。
+
+当前候选参数为：触发步 20、初始延迟 5 步、安全余量 2 步、混合 5 步、EMA
+系数 0.4。关闭 RTC 不会删除这些参数，它们保持休眠，便于单字段回退。
+
 ## 检查点切换
 
 当前决赛初版由 `l20_server/Pi_05/deploy.pi05-goai10000.yml` 记录模型加载参数：

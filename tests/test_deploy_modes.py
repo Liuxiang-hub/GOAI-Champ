@@ -1,10 +1,12 @@
 import os
+import time
 import unittest
 from unittest import mock
 
 import numpy as np
 
 from robot_client.Pi05_PiperX import deploy
+from robot_client.HRT1 import deploy as hrt1_deploy
 
 
 def action(value=0.0):
@@ -50,6 +52,36 @@ class FakeClient:
         if func_name == "get_action":
             return [action() for _ in range(3)]
         return None
+
+
+class MetadataClient:
+    def __init__(self):
+        self.calls = []
+        self.observation = None
+        self.contexts = []
+
+    def call(self, func_name, **kwargs):
+        self.calls.append(func_name)
+        if func_name == "reset":
+            self.observation = None
+            return None
+        if func_name == "update_obs":
+            self.observation = kwargs["obs"]
+            return None
+        if func_name != "get_action_with_metadata":
+            raise AssertionError(f"unexpected remote call: {func_name}")
+
+        context = dict(self.observation["_rtc_context"])
+        self.contexts.append(context)
+        time.sleep(0.002)
+        chunk = np.zeros((50, 14), dtype=np.float32)
+        chunk[:, 6] = 0.5
+        chunk[:, 13] = 0.5
+        return {
+            "action": chunk,
+            "_rtc_model_actions": np.zeros((50, 32), dtype=np.float32),
+            "_rtc_context": context,
+        }
 
 
 class DeployModeTest(unittest.TestCase):
@@ -138,6 +170,60 @@ class DeployModeTest(unittest.TestCase):
         result = deploy._command(raw, observation(), cfg, mock.Mock())
         self.assertEqual(result["right_arm_joint_state"][4], -0.25)
         self.assertEqual(raw["right_arm_joint_state"][4], 0.25)
+
+
+class HRT1LocalRTCTest(unittest.TestCase):
+    @staticmethod
+    def config(enabled):
+        return {
+            "hardware_output_enabled": False,
+            "control_hz": 200.0,
+            "execute_steps": 20,
+            "rtc_enabled": enabled,
+            "execution_mode": "rtc_local" if enabled else "synchronous_prefix",
+            "software_safety_enabled": False,
+            "rtc_action_ema_alpha": 1.0,
+            "rtc_trigger_step": 20,
+            "rtc_initial_delay_steps": 2,
+            "rtc_blend_steps": 5,
+            "rtc_safety_margin_steps": 1,
+            "rtc_latency_window": 5,
+            "rtc_guidance_beta": 5.0,
+            "rtc_prewarm_guided": True,
+            "rtc_stop_timeout_s": 2.0,
+        }
+
+    def test_switch_defaults_to_synchronous_mode(self):
+        self.assertEqual(hrt1_deploy._execution_mode({}), "synchronous_prefix")
+        self.assertEqual(
+            hrt1_deploy._execution_mode(
+                {"rtc_enabled": False, "execution_mode": "rtc_local"}
+            ),
+            "synchronous_prefix",
+        )
+        self.assertEqual(
+            hrt1_deploy._execution_mode({"rtc_enabled": True}),
+            "rtc_local",
+        )
+
+    def test_local_rtc_crosses_chunks_without_per_step_rpc(self):
+        client = MetadataClient()
+        env = FakeEnv(steps=45)
+        with mock.patch.dict(os.environ, {"EVAL_ENV_TYPE": "debug"}), mock.patch.object(
+            hrt1_deploy, "_gate", return_value=self.config(True)
+        ):
+            hrt1_deploy.eval_one_episode(env, client)
+
+        self.assertEqual(env.count, 45)
+        self.assertEqual(client.calls.count("reset"), 1)
+        self.assertGreaterEqual(client.calls.count("get_action_with_metadata"), 3)
+        self.assertEqual(
+            client.calls.count("update_obs"),
+            client.calls.count("get_action_with_metadata"),
+        )
+        self.assertNotIn("rtc_next_action", client.calls)
+        self.assertNotIn("rtc_commit", client.calls)
+        self.assertGreaterEqual(max(item["request_id"] for item in client.contexts), 2)
 
 
 if __name__ == "__main__":
