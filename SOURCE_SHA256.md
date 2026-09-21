@@ -2,15 +2,18 @@
 
 ## 决赛初版运行文件（2026-09-21）
 
-以下 SHA256 来自当时正在运行的 Robot 6 HRT1 与 L20 文件。Git 属性固定这些
-路径使用 LF，避免跨平台换行改变校验结果。仓库安全模板
+以下 SHA256 对应仓库中以 LF 保存的 Robot 6 HRT1 与 L20 运行文件。除
+`safety.py` 的换行规范化外，它们与当时运行文件的原始字节哈希一致。现场
+`safety.py` 使用 CRLF，原始 SHA256 为
+`ecfd1b6c9193f39c63a7cdbf2b54508be9a3c71e6710c133c609fe2e55c2a8ca`；仅将
+CRLF 规范为 LF 后得到下列仓库哈希，代码内容没有变化。仓库安全模板
 `robot_client/HRT1/motion_gate.json` 故意与启用输出的现场快照不同。
 
 ```text
 42abb01442262b26eadd43f1a52b962837ec70c514d0f5f1d14309dc79e7b05f  robot_client/HRT1/model.py
 199b8ab8c3796f0637f51179423f0f138536f8a6c0ce3e4215ed45fb5dbfe91c  robot_client/HRT1/deploy.py
 a036fe124a2a86f20c9390e52d0b8e3db21e736f360c55f0c73dc45677b94238  robot_client/HRT1/rtc_core.py
-ecfd1b6c9193f39c63a7cdbf2b54508be9a3c71e6710c133c609fe2e55c2a8ca  robot_client/HRT1/safety.py
+6146bad5c8dc2c87e0d6a8aab760b606ed87a00068f80e50e90fc224b4d17834  robot_client/HRT1/safety.py
 6151a0f51253f6c0754225bdf386c808cb97766c23b9ac18f65e98a7467f2a89  robot_client/HRT1/deploy.yml
 18ad2690c05a7197222db19c1e8bb83365cfdf4066c2b31f85a47b9ea6a9728b  robot_client/HRT1/motion_gate.robot6-finals-v1.json
 687cf4e509b7a5a7ff81060badeedafd39a60e5b6250a87948145f5387f5cd25  l20_server/HRT1/deploy.hrt1-l20.yml
