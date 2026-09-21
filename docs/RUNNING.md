@@ -34,7 +34,7 @@ git status --short
 
 权重获取与配置见[模型说明](MODEL_WEIGHTS.md)。模型服务使用上游XPolicyLab/OpenPI的模型端入口；机器人端deploy.yml仅用于策略适配器，不能用于启动模型服务。
 
-同一训练配方下切换权重时，保持 `ckpt_name: real-piper6-lora` 不变，只修改
+同一训练配方下切换权重时，保持 `ckpt_name: pi05-goai6-piper` 不变，只修改
 L20运行配置中的一行：
 
 ```yaml
@@ -70,7 +70,9 @@ python setup_policy_server.py --config_path policy/HRT1/deploy.yml
 `execution_mode=synchronous_prefix`，每块 50 步预测执行前 20 步，名义控制
 频率 25 Hz。执行循环以 `motion_gate.json` 为准。
 公开配置保持hardware_output_enabled=false；历史2223快照不应用作当前配置替代品。
-现场记录及验证范围见[现场运行说明](FIELD_STATUS_20260920.md)。
+当前现场记录及验证范围见[决赛初版部署快照](FINALS_V1_20260921.md)。
+`FIELD_STATUS_20260920.md` 记录的是上一版 Pi05_PiperX 链路，不作为当前 HRT1
+端口、检查点或动作前缀的配置来源。
 
 ## 5. 辅助工具
 

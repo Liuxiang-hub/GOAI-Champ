@@ -19,9 +19,9 @@ checkpoint_num: 10000
 对于相同训练配方的新权重，只修改 `checkpoint_num`。机器人端
 `deploy.yml`中的 `ckpt_name` 只是适配器标签，不参与L20模型加载。
 
-服务端使用训练配置 `pi05_base_piper6_lora_real`，从检查点的
-`assets/yangchenjie/robodojo_piper6_v3` 读取统计。参数文件、训练配置和
-assets必须属于同一训练配方。
+当前 10k 服务使用训练配置 `pi05_goai6_piper`，assets 标识为
+`local/goai2026_real_piper_joint_rgb`。参数文件、训练配置、assets 与动作接口
+必须属于同一训练配方。
 
 以下三个“step”彼此独立：
 
@@ -29,7 +29,9 @@ assets必须属于同一训练配方。
 - sampler `num_steps`：单次推理的去噪迭代次数，当前代码默认10。
 - `execute_steps`：机器人每轮执行的动作前缀；决赛初版为20。
 
-更换同配方checkpoint时只改第一项；后两项是推理和控制参数，不随训练步数变化。
+更换同配方 checkpoint 时只改第一项；后两项是推理和控制参数，不随训练步数变化。
+“同配方”要求 `ckpt_name`、`train_config_name`、`repo_id`、动作维度和归一化资产
+保持兼容。若其中任一项变化，应按新模型版本完整核查，而不是直接替换目录。
 
 ## 版本一致性
 

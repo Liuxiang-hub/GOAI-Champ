@@ -29,14 +29,20 @@ deploy.yml同时保存适配器参数。2026-09-21 决赛初版在两处均记�
 
 ## 检查点切换
 
-L20运行配置是模型加载的唯一入口。同一训练配方下保持
-`ckpt_name=real-piper6-lora`，只修改 `checkpoint_num`。机器人端配置中的
-checkpoint文本不参与模型解析。
+当前决赛初版由 `l20_server/Pi_05/deploy.pi05-goai10000.yml` 记录模型加载参数：
+`ckpt_name=pi05-goai6-piper`、`checkpoint_num=10000`、
+`train_config_name=pi05_goai6_piper`、
+`repo_id=local/goai2026_real_piper_joint_rgb`。机器人端和 HRT1 适配器中的
+checkpoint 文本用于标识与核查，不替代 Pi0.5 模型服务的加载配置。
+
+同一训练配方、相同 assets 和动作接口的新权重只需修改 `checkpoint_num`；
+若模型族、训练配置或 assets 发生变化，必须同步核对上述字段，不能按“只换步数”处理。
 
 `checkpoint_num`、sampler默认`num_steps`和机器人端`execute_steps`分别表示
 训练保存步、推理去噪次数和动作执行前缀，不能互相替代。
 
-现场核查及配置来源见[现场运行说明](FIELD_STATUS_20260920.md)。25Hz描述动作块内的名义频率，完整循环还包含通信和推理等待。
+当前决赛配置来源见[决赛初版部署快照](FINALS_V1_20260921.md)；上一版链路见
+[2026-09-20 现场运行说明](FIELD_STATUS_20260920.md)。25 Hz 描述动作块内的名义频率，完整循环还包含通信和推理等待。
 
 部署文件中保留的历史兼容字段不参与 `synchronous_prefix` 执行循环，当前参数以 `motion_gate.json` 中的同步前缀配置为准。
 

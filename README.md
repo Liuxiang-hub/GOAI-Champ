@@ -2,7 +2,7 @@
 
 ![GOAI-Champ 双臂任务展示](assets/dual-arm-demo.png)
 
-HUST HRT 面向 GOAI 2026 双臂赛道构建的 Pi0.5 真机部署与复现仓库。系统联合三路视觉、双臂关节与夹爪状态以及任务指令预测连续动作块，并通过同步前缀执行完成闭环控制。
+HUST HRT 面向 GOAI 2026 双臂赛道构建的 Pi0.5 真机部署与复现仓库。系统联合三路视觉、双臂关节与夹爪状态以及任务指令预测连续动作块，并通过同步前缀执行完成闭环控制。`HRT1` 是当前 Pi0.5 链路的比赛策略名与部署适配层，不代表另一套基础模型。
 
 [运行指南](docs/RUNNING.md) · [配置说明](docs/CONFIGURATION.md) · [模型权重](docs/MODEL_WEIGHTS.md) · [决赛核查材料](docs/FINAL_SUBMISSION.md) · [现场记录](docs/FIELD_STATUS_20260920.md)
 
@@ -74,12 +74,12 @@ HUST HRT 面向 GOAI 2026 双臂赛道构建的 Pi0.5 真机部署与复现仓�
 ```text
 GOAI-Champ/
 ├── assets/                         # README 展示素材
-├── archive/                        # 与当前Pi0.5主线隔离的历史技术栈
+├── archive/                        # 与当前 Pi0.5 主线隔离的 LingBot 等历史技术栈
 ├── docs/                           # 核查、运行、配置、权重与现场记录
 ├── l20_server/                     # L20 模型服务适配与历史覆盖代码
-├── l20_server/HRT1/                # 决赛初版 L20 HRT1 适配器及路由单元
-├── robot_client/HRT1/              # 决赛初版现场执行循环与运行快照
-├── robot_client/Pi05_PiperX/       # 机器人端适配、执行代码和配置
+├── l20_server/HRT1/                # 当前 Pi0.5 链路的 L20 HRT1 适配与路由单元
+├── robot_client/HRT1/              # 当前 Pi0.5 链路的现场执行循环与运行快照
+├── robot_client/Pi05_PiperX/       # 2026-09-20 的 Pi0.5 部署基线
 ├── tests/                          # 部署模式与变换回归测试
 ├── tools/                          # 本地任务派发、回放与链路验证
 ├── SOURCE_SHA256.md                # 历史源码文件校验记录

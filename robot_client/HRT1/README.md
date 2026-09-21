@@ -12,7 +12,7 @@ field computer; `model.py` is also retained here for the rollback topology.
 - Model output: 50 x 14 absolute targets
 - Execution: first 20 steps, then acquire a new observation and infer again
 - Nominal control rate: 25 Hz
-- Mode: `synchronous_prefix` (RTC is not active)
+- Mode: `synchronous_prefix`
 - Action order: left J1-J6, left gripper, right J1-J6, right gripper
 - Robot 6 J5 mapping: left sign `-1`, right sign `+1`
 
@@ -21,9 +21,12 @@ disabled. `motion_gate.robot6-finals-v1.json` is the exact enabled field
 snapshot captured for audit; do not copy it blindly to another robot.
 
 The legacy `real-piper6-lora/7594` wording in the exact deployed `model.py`
-docstring and one validation message is not the loaded checkpoint. Runtime
-configuration and `status()` are authoritative; this snapshot used
-`pi05-goai6-piper/10000`.
+docstring and one validation message is not the loaded checkpoint. The Pi0.5
+service configuration, startup record and adapter metadata identify this
+snapshot as `pi05-goai6-piper/10000`.
+
+`HRT1` is the competition policy name and deployment adapter for this Pi0.5
+route. It is independent from the archived LingBot/8884 materials.
 
 The deployed adapter logs `HRT1_CLIENT_TIMING` per request. A completed official
 record only proves that the software flow ended; it does not prove physical

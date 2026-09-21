@@ -1,5 +1,9 @@
 # HRT1 adapter on L20
 
+HRT1 is the deployment adapter and competition policy name for the current
+Pi0.5 route; it is not a separate foundation model and does not use the
+archived LingBot/8884 stack.
+
 This directory records the optimized finals-v1 policy route:
 
 ```text
