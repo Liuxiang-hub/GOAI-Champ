@@ -1,0 +1,7 @@
+[Unit]
+Description=Proxy HRT1 public port to L20 localhost:16010
+Requires=hrt1-l20.service
+After=hrt1-l20.service
+
+[Service]
+ExecStart=/lib/systemd/systemd-socket-proxyd 127.0.0.1:16010

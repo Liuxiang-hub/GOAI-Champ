@@ -1,0 +1,30 @@
+policy_name: HRT1
+protocol: ws
+host: 0.0.0.0
+port: 6000
+bench_name: RoboDojo
+task_name: stack_bowls
+default_instruction: put the object into the basket
+ckpt_name: pi05-goai6-piper/10000
+env_cfg_type: piper_x
+seed: 0
+action_type: joint
+gpu_id: 0
+eval_batch: false
+pi05_url: ws://127.0.0.1:6199
+request_timeout_s: 60
+execute_steps: 20
+rtc_lookahead_ratio: 0.4
+rtc_trigger_step: 20
+rtc_blend_steps: 5
+rtc_action_ema_alpha: 0.4
+rtc_safety_margin_steps: 2
+rtc_latency_window: 5
+rtc_initial_delay_steps: 11
+rtc_prewarm_guided: true
+control_hz: 25
+execution_mode: synchronous_prefix
+camera_mapping:
+  cam_high: [cam_head, cam_high]
+  cam_left_wrist: [cam_left_wrist]
+  cam_right_wrist: [cam_right_wrist]

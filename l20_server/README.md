@@ -24,9 +24,10 @@ be used with its matching XPolicyLab/OpenPI environment.
 
 ## 配置与依赖补充
 
-本目录不含完整上游源码、依赖锁文件或L20运行配置。见
+本目录不含完整上游源码或依赖锁文件。决赛初版的 10k 运行配置和 HRT1
+路由单元已保存于 `Pi_05/` 与 `HRT1/`；见
 [运行指南](../docs/RUNNING.md)和[权重说明](../docs/MODEL_WEIGHTS.md)。
-当前实际配置使用 `ckpt_name=real-piper6-lora`、
-`train_config_name=pi05_base_piper6_lora_real` 和
-`repo_id=yangchenjie/robodojo_piper6_v3`；同配方新权重只修改
-`checkpoint_num`。
+当前决赛初版实际配置使用 `ckpt_name=pi05-goai6-piper`、
+`train_config_name=pi05_goai6_piper` 和
+`repo_id=local/goai2026_real_piper_joint_rgb`；同配方新权重只修改
+`checkpoint_num`。2026-09-21 决赛初版固定为 `checkpoint_num=10000`。

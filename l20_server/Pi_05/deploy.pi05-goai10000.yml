@@ -1,0 +1,23 @@
+# Independent Pi0.5 10k inference endpoint. Earlier checkpoints remain available.
+policy_name: Pi_05
+protocol: ws
+host: 127.0.0.1
+port: 6199
+
+bench_name: GOAI2026
+task_name: fill_pen_holder
+env_cfg_type: piper_x
+seed: 0
+eval_batch: true
+
+ckpt_name: pi05-goai6-piper
+checkpoint_num: 10000
+model_path: /opt/goai/models/pi05/checkpoints/pi05-goai6-piper/10000
+repo_id: local/goai2026_real_piper_joint_rgb
+train_config_name: pi05_goai6_piper
+
+action_type: joint
+action_dim: 14
+policy_uv_env_path: openpi
+obs_transform_pipeline: xspark-v1.0
+result_dir: /opt/goai/results/pi05-10000/

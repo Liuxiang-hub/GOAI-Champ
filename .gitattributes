@@ -1,0 +1,4 @@
+robot_client/HRT1/** text eol=lf
+l20_server/HRT1/** text eol=lf
+l20_server/Pi_05/deploy.pi05-goai10000.yml text eol=lf
+l20_server/Pi_05/pi05-goai10000.service text eol=lf

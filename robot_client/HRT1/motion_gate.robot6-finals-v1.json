@@ -1,0 +1,11 @@
+{
+  "hardware_output_enabled": true,
+  "control_hz": 25.0,
+  "execute_steps": 20,
+  "execution_mode": "synchronous_prefix",
+  "software_safety_enabled": false,
+  "rtc_action_ema_alpha": 0.4,
+  "rtc_trigger_step": 20,
+  "left_j5_sign": -1.0,
+  "right_j5_sign": 1.0
+}

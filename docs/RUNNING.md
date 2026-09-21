@@ -26,9 +26,10 @@ git status --short
 
 ## 2. 放置代码和检查点
 
-机器人端：将robot_client/Pi05_PiperX对应到XPolicyLab的policy/Pi05_PiperX。
-模型端：按[l20_server说明](../l20_server/README.md)映射覆盖文件，模型加载参数
-沿用L20实际运行配置。
+决赛初版现场端：将 `robot_client/HRT1` 对应到 XPolicyLab 的 `policy/HRT1`，
+并先把仓库安全模板复制为现场 `motion_gate.json`。L20 端按
+[`l20_server/HRT1`](../l20_server/HRT1/README.md)安装适配器和端口路由；模型
+服务使用 `l20_server/Pi_05/deploy.pi05-goai10000.yml`。
 覆盖前保存原文件，并核对上游版本；本仓库未完整收录上游工程。
 
 权重获取与配置见[模型说明](MODEL_WEIGHTS.md)。模型服务使用上游XPolicyLab/OpenPI的模型端入口；机器人端deploy.yml仅用于策略适配器，不能用于启动模型服务。
@@ -60,13 +61,14 @@ python -m unittest discover -s tests -p "test_*.py" -v
 在已准备好的XPolicyLab根目录、对应运行环境中执行：
 
 ```bash
-python setup_policy_server.py --config_path policy/Pi05_PiperX/deploy.yml
+python setup_policy_server.py --config_path policy/HRT1/deploy.yml
 ```
 
 入口脚本来自外部XPolicyLab，不包含在本仓库中。
 
-当前默认方案为同步前缀执行：两份配置均设置execution_mode=synchronous_prefix，
-每块50步预测执行前15步，名义控制频率25Hz。执行循环以motion_gate.json为准。
+当前决赛初版为同步前缀执行：两份配置均设置
+`execution_mode=synchronous_prefix`，每块 50 步预测执行前 20 步，名义控制
+频率 25 Hz。执行循环以 `motion_gate.json` 为准。
 公开配置保持hardware_output_enabled=false；历史2223快照不应用作当前配置替代品。
 现场记录及验证范围见[现场运行说明](FIELD_STATUS_20260920.md)。
 

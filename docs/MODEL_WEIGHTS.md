@@ -12,8 +12,8 @@
 L20实际运行配置将模型族与训练保存步分开：
 
 ```yaml
-ckpt_name: real-piper6-lora
-checkpoint_num: 7594
+ckpt_name: pi05-goai6-piper
+checkpoint_num: 10000
 ```
 
 对于相同训练配方的新权重，只修改 `checkpoint_num`。机器人端
@@ -27,7 +27,7 @@ assets必须属于同一训练配方。
 
 - `checkpoint_num`：训练保存步，仅用于选择权重。
 - sampler `num_steps`：单次推理的去噪迭代次数，当前代码默认10。
-- `execute_steps`：机器人每轮执行的动作前缀，默认15。
+- `execute_steps`：机器人每轮执行的动作前缀；决赛初版为20。
 
 更换同配方checkpoint时只改第一项；后两项是推理和控制参数，不随训练步数变化。
 

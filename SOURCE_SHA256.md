@@ -1,5 +1,28 @@
 # 2223 source hashes
 
+## 决赛初版运行文件（2026-09-21）
+
+以下 SHA256 来自当时正在运行的 Robot 6 HRT1 与 L20 文件。Git 属性固定这些
+路径使用 LF，避免跨平台换行改变校验结果。仓库安全模板
+`robot_client/HRT1/motion_gate.json` 故意与启用输出的现场快照不同。
+
+```text
+42abb01442262b26eadd43f1a52b962837ec70c514d0f5f1d14309dc79e7b05f  robot_client/HRT1/model.py
+199b8ab8c3796f0637f51179423f0f138536f8a6c0ce3e4215ed45fb5dbfe91c  robot_client/HRT1/deploy.py
+a036fe124a2a86f20c9390e52d0b8e3db21e736f360c55f0c73dc45677b94238  robot_client/HRT1/rtc_core.py
+ecfd1b6c9193f39c63a7cdbf2b54508be9a3c71e6710c133c609fe2e55c2a8ca  robot_client/HRT1/safety.py
+6151a0f51253f6c0754225bdf386c808cb97766c23b9ac18f65e98a7467f2a89  robot_client/HRT1/deploy.yml
+18ad2690c05a7197222db19c1e8bb83365cfdf4066c2b31f85a47b9ea6a9728b  robot_client/HRT1/motion_gate.robot6-finals-v1.json
+687cf4e509b7a5a7ff81060badeedafd39a60e5b6250a87948145f5387f5cd25  l20_server/HRT1/deploy.hrt1-l20.yml
+a492b2e5f7a1121346b8d420d4d0e4c5e46bd079cefff43143a2785e874f0440  l20_server/HRT1/systemd/hrt1-l20.service
+d2a1152c23f3ddafaaa631c6992ab384c362a5033ee1c3d7077a597702068714  l20_server/HRT1/systemd/hrt1-l20-public.socket
+a7e8d9eeaae4ecd21928ac3ea04ed196682358ded5a9e87e5eda7179138a5c75  l20_server/HRT1/systemd/hrt1-l20-public.service
+7a930641fae33c388e62ebd5009a689a18f3b15f9bf15e30c12bb8f40497da3b  l20_server/HRT1/systemd/hrt1-field-public.socket
+c1a3653167c013c4aaeebb50eb0f87cb734dc91e191e3f0e4d26c346e45b82e2  l20_server/HRT1/systemd/hrt1-field-public.service
+3fa8c399cd0c2b85a2731dcb7ad70a0d6aa222d8bdef86543254da8d3af7277a  l20_server/Pi_05/deploy.pi05-goai10000.yml
+8b72f6e8c96a92cf3fac2bd0ccad53d7dd1326600112e1b80ecd140e7c830925  l20_server/Pi_05/pi05-goai10000.service
+```
+
 ## 核查范围补充（2026-09-20）
 
 下方保留2223历史现场记录。裸文件名位于robot_client/Pi05_PiperX/。

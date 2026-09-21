@@ -1,0 +1,16 @@
+[Unit]
+Description=GOAI Pi0.5 10k inference server on localhost:6199
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/goai/src/XPolicyLab-pi05/policy/Pi_05
+ExecStart=/opt/goai/src/XPolicyLab-pi05/policy/Pi_05/openpi/.venv/bin/python /opt/goai/src/XPolicyLab-pi05/setup_policy_server.py --config_path /opt/goai/pi05/config/deploy.pi05-goai10000.yml
+Restart=on-failure
+RestartSec=5
+StandardOutput=append:/opt/goai/logs/pi05-10000/policy_server.log
+StandardError=append:/opt/goai/logs/pi05-10000/policy_server.log
+
+[Install]
+WantedBy=multi-user.target

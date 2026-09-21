@@ -1,0 +1,9 @@
+[Unit]
+Description=HRT1 public port 6000 routed to L20 adapter
+
+[Socket]
+ListenStream=0.0.0.0:6000
+NoDelay=true
+
+[Install]
+WantedBy=sockets.target
